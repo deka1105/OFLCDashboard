@@ -1,0 +1,17 @@
+Thank you for your patience.
+
+Since this is a self hosted and a weekend project it needs a few seconds to load data.
+
+The information provided on the County Wage Explorer is for informational and educational purposes only.
+
+All wage data displayed on this site is sourced from publicly available U.S. Department of Labor / Office of Foreign Labor Certification (OFLC) datasets. While efforts have been made to ensure accuracy, completeness, and timeliness, no guarantees are made regarding the reliability of the data presented.
+
+Wage levels (Level 1–4 and Average) reflect prevailing wage determinations and may not represent actual salaries paid in specific job offers. Data may be subject to reporting delays, revisions, or interpretation differences.
+
+This tool is not affiliated with, endorsed by, or sponsored by any government agency.
+
+Users should independently verify all information before making employment, relocation, financial, or career decisions.
+
+By using this site, you acknowledge and agree that the creator assumes no liability for decisions made based on the information provided.
+
+For official data and guidance, please refer directly to the U.S. Department of Labor.

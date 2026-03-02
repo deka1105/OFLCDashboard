@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US County Wage Explorer</title>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-59JKD9H0G8"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-59JKD9H0G8');
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=DM+Serif+Display&display=swap');
+
+:root{
+--bg:#0b0e17;
+--surface:#131722;
+--surface2:#1a2033;
+--border:#252d42;
+--accent:#f0b429;
+--accent2:#38bdf8;
+--text:#dde3f0;
+--muted:#5a6580;
+--font:'IBM Plex Mono', monospace;
+--serif:'DM Serif Display', serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+background:var(--bg);
+color:var(--text);
+font-family:var(--font);
+height:100vh;
+display:flex;
+flex-direction:column;
+overflow:hidden;
+font-size:13px;
+}
+
+/* HEADER */
+header{
+background:var(--surface);
+border-bottom:1px solid var(--border);
+padding:10px 20px;
+display:flex;
+align-items:center;
+gap:20px;
+flex-wrap:wrap;
+}
+header h1{
+font-family:var(--serif);
+color:var(--accent);
+font-size:1.3rem;
+}
+
+.filter-group{flex:1;min-width:220px;max-width:420px;display:flex;flex-direction:column;gap:4px}
+.filter-group label{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+
+#filter-input{
+background:var(--surface2);
+border:1px solid var(--border);
+color:var(--text);
+padding:6px 10px;
+font-size:.72rem;
+outline:none;
+}
+#filter-input:focus{border-color:var(--accent)}
+
+.autocomplete-wrap{position:relative}
+#autocomplete-list{
+position:absolute;
+top:100%;
+left:0;right:0;
+background:var(--surface2);
+border:1px solid var(--accent);
+border-top:none;
+max-height:220px;
+overflow-y:auto;
+display:none;
+z-index:100;
+}
+#autocomplete-list.open{display:block}
+.ac-item{
+padding:6px 10px;
+font-size:.7rem;
+cursor:pointer;
+border-bottom:1px solid var(--border);
+display:flex;
+justify-content:space-between;
+}
+.ac-item:hover,.ac-item.active{
+background:var(--accent);
+color:var(--bg);
+}
+
+/* MAP */
+.main{flex:1;display:flex;overflow:hidden}
+#map-container{flex:1;position:relative}
+svg{width:100%;height:100%}
+
+.county{stroke:#1e2840;stroke-width:.3;cursor:pointer}
+.county.no-data{fill:#151c2e}
+.state-boundary{fill:none;stroke:#3a4a6a;stroke-width:.8}
+
+/* SOURCE BUTTON */
+#source-btn{
+position:fixed;
+bottom:18px;
+right:18px;
+background:var(--surface);
+border:1px solid var(--accent);
+color:var(--text);
+padding:8px 12px;
+font-size:.65rem;
+cursor:pointer;
+z-index:300;
+}
+#source-btn:hover{background:var(--accent);color:var(--bg)}
+
+.mini-popup{
+position:fixed;
+bottom:60px;
+right:18px;
+background:var(--surface);
+border:1px solid var(--accent);
+padding:14px;
+font-size:.7rem;
+display:none;
+width:260px;
+z-index:300;
+}
+
+/* DISCLAIMER MODAL */
+.modal-overlay{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.7);
+display:flex;
+align-items:center;
+justify-content:center;
+z-index:500;
+}
+.modal-box{
+background:var(--surface);
+border:1px solid var(--accent);
+padding:22px;
+width:520px;
+max-width:90%;
+max-height:70vh;
+overflow-y:auto;
+position:relative;
+font-size:.75rem;
+}
+.modal-close{
+position:absolute;
+top:8px;
+right:8px;
+background:var(--surface2);
+border:1px solid var(--border);
+color:var(--text);
+width:26px;
+height:26px;
+cursor:pointer;
+}
+.modal-close:hover{background:var(--accent);color:var(--bg)}
+
+/* HELP POPUP */
+.help-popup{
+position:fixed;
+top:20px;
+right:20px;
+background:var(--surface);
+border:1px solid var(--accent);
+padding:16px;
+font-size:.7rem;
+display:none;
+width:240px;
+z-index:400;
+}
+.help-popup a{color:var(--accent2);text-decoration:none}
+.help-popup a:hover{text-decoration:underline}
+#help-later{
+margin-top:10px;
+background:var(--surface2);
+border:1px solid var(--border);
+color:var(--text);
+width:100%;
+padding:6px;
+cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>County Wage Explorer</h1>
+<div class="filter-group">
+<label>Filter by Occupation</label>
+<div class="autocomplete-wrap">
+<input id="filter-input" type="text" placeholder="Search occupation..." autocomplete="off">
+<div id="autocomplete-list"></div>
+</div>
+</div>
+</header>
+
+<div class="main">
+<div id="map-container">
+<svg id="svg-map"></svg>
+</div>
+</div>
+
+<!-- DISCLAIMER -->
+<div id="disclaimer-overlay" class="modal-overlay">
+<div class="modal-box">
+<button id="disclaimer-close" class="modal-close">✕</button>
+<div id="disclaimer-content">Loading disclaimer...</div>
+</div>
+</div>
+
+<!-- SOURCE -->
+<button id="source-btn">Source</button>
+<div id="source-popup" class="mini-popup">
+Data Source: U.S. Department of Labor / OFLC Wage Data<br>
+CSV: merged3yrsV2.csv
+<br><br>
+<button id="source-close">Close</button>
+</div>
+
+<!-- HELP -->
+<div id="help-popup" class="help-popup">
+<strong>Enjoying the tool?</strong><br><br>
+Help the builder ❤️<br><br>
+<a href="https://sdfolio.com" target="_blank">Visit sdfolio.com</a>
+<button id="help-later">Later</button>
+</div>
+
+<script>
+const CSV_URL='https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/merged3yrsV2.csv';
+
+let titleIndex={},TITLES=[],selectedTitle=null;
+
+/* DISCLAIMER LOAD */
+async function loadDisclaimer(){
+try{
+const res=await fetch('disclaimer.txt');
+const text=await res.text();
+document.getElementById('disclaimer-content').innerText=text;
+}catch{
+document.getElementById('disclaimer-content').innerText="Disclaimer could not be loaded.";
+}
+}
+document.getElementById('disclaimer-close').onclick=()=>{
+document.getElementById('disclaimer-overlay').style.display='none';
+};
+loadDisclaimer();
+
+/* SOURCE BUTTON */
+document.getElementById('source-btn').onclick=()=>{
+document.getElementById('source-popup').style.display='block';
+};
+document.getElementById('source-close').onclick=()=>{
+document.getElementById('source-popup').style.display='none';
+};
+
+/* HELP POPUP */
+setTimeout(()=>{
+document.getElementById('help-popup').style.display='block';
+},30000);
+document.getElementById('help-later').onclick=()=>{
+document.getElementById('help-popup').style.display='none';
+};
+
+/* LOAD CSV */
+async function loadCSV(){
+const r=await fetch(CSV_URL);
+const t=await r.text();
+const lines=t.split('\n');
+const set=new Set();
+for(let i=1;i<lines.length;i++){
+const f=lines[i].split(',');
+if(f.length<13)continue;
+const soc=f[1];
+const title=f[12];
+if(!title)continue;
+if(!titleIndex[title])titleIndex[title]=[];
+titleIndex[title].push({soc});
+set.add(title);
+}
+TITLES=[...set].sort();
+}
+loadCSV();
+
+/* AUTOCOMPLETE */
+const input=document.getElementById('filter-input');
+const acList=document.getElementById('autocomplete-list');
+let acIndex=-1;
+
+function renderAC(items){
+if(!items.length){acList.classList.remove('open');return;}
+acList.innerHTML=items.slice(0,30).map(t=>{
+const soc=titleIndex[t]?.[0]?.soc||'';
+return `<div class="ac-item" data-title="${t}">
+<span>${t}</span>
+<span style="color:var(--muted)">${soc}</span>
+</div>`;
+}).join('');
+acList.classList.add('open');
+acList.querySelectorAll('.ac-item').forEach(el=>{
+el.addEventListener('mousedown',e=>{
+e.preventDefault();
+selectTitle(el.dataset.title);
+});
+});
+}
+
+function selectTitle(title){
+selectedTitle=title;
+input.value=title;
+acList.classList.remove('open');
+}
+
+input.addEventListener('input',()=>{
+const q=input.value.toLowerCase().trim();
+if(!q){acList.classList.remove('open');return;}
+renderAC(TITLES.filter(t=>t.toLowerCase().includes(q)));
+});
+</script>
+
+</body>
+</html>
