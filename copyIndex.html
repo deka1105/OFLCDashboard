@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US County Wage Explorer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=DM+Serif+Display&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0b0e17;
+    --surface: #131722;
+    --surface2: #1a2033;
+    --border: #252d42;
+    --accent: #f0b429;
+    --accent2: #38bdf8;
+    --green: #34d399;
+    --text: #dde3f0;
+    --muted: #5a6580;
+    --font: 'IBM Plex Mono', monospace;
+    --serif: 'DM Serif Display', serif;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); height: 100vh; display: flex; flex-direction: column; overflow: hidden; font-size: 13px; }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  header h1 { font-family: var(--serif); font-size: 1.3rem; color: var(--accent); white-space: nowrap; }
+
+  .filter-group { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 220px; max-width: 420px; }
+  .filter-group label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  #filter-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.72rem;
+    padding: 6px 10px;
+    outline: none;
+    width: 100%;
+  }
+  #filter-input:focus { border-color: var(--accent); }
+
+  .autocomplete-wrap { position: relative; }
+  #autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-top: none;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+  }
+  #autocomplete-list.open { display: block; }
+  .ac-item {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .ac-item:hover, .ac-item.active { background: var(--accent); color: var(--bg); }
+
+  .metric-group { display: flex; gap: 6px; align-items: center; }
+  .metric-group label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+  .metric-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 0.65rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .metric-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+  .metric-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
+
+  /* LEGEND */
+  #legend {
+    display: flex; align-items: center; gap: 8px; margin-left: auto;
+    flex-shrink: 0;
+  }
+  #legend-bar {
+    width: 140px; height: 10px;
+    background: linear-gradient(to right, #1e3a5f, #38bdf8, #f0b429, #ef4444);
+    border: 1px solid var(--border);
+  }
+  .legend-labels { display: flex; justify-content: space-between; width: 140px; font-size: 0.6rem; color: var(--muted); }
+  #legend-min, #legend-max { font-size: 0.6rem; color: var(--muted); }
+
+  /* MAIN */
+  .main { flex: 1; position: relative; overflow: hidden; display: flex; }
+
+  #map-container { flex: 1; cursor: grab; position: relative; }
+  #map-container:active { cursor: grabbing; }
+  svg { width: 100%; height: 100%; display: block; }
+
+  .county { stroke: #1e2840; stroke-width: 0.3; cursor: pointer; transition: opacity 0.1s; }
+  .county:hover { opacity: 0.75; stroke: #fff; stroke-width: 0.6; }
+  .county.no-data { fill: #151c2e; cursor: default; }
+  .state-boundary { fill: none; stroke: #3a4a6a; stroke-width: 0.8; pointer-events: none; }
+
+  /* TOOLTIP */
+  #tooltip {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    padding: 10px 14px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s;
+    z-index: 50;
+    min-width: 200px;
+    line-height: 1.6;
+  }
+  #tooltip.visible { opacity: 1; }
+  #tooltip .tt-county { font-family: var(--serif); font-size: 1rem; color: var(--accent); }
+  #tooltip .tt-state { font-size: 0.65rem; color: var(--muted); margin-bottom: 6px; }
+  #tooltip .tt-title { font-size: 0.68rem; color: var(--accent2); margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+  .tt-row { display: flex; justify-content: space-between; gap: 16px; font-size: 0.7rem; }
+  .tt-row .lbl { color: var(--muted); }
+  .tt-row .val { color: var(--text); font-weight: 600; }
+  .tt-row .val.highlight { color: var(--accent); }
+  #tooltip .tt-nodata { font-size: 0.7rem; color: var(--muted); font-style: italic; }
+
+  /* SIDE PANEL */
+  #side-panel {
+    width: 260px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  #side-panel h3 {
+    font-family: var(--serif);
+    font-size: 0.9rem;
+    color: var(--accent);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  #county-list { flex: 1; overflow-y: auto; }
+  #county-list::-webkit-scrollbar { width: 4px; }
+  #county-list::-webkit-scrollbar-thumb { background: var(--border); }
+  .county-item {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .county-item:hover { background: var(--surface2); }
+  .county-item .ci-name { font-size: 0.72rem; color: var(--text); }
+  .county-item .ci-state { font-size: 0.6rem; color: var(--muted); }
+  .county-item .ci-val { font-size: 0.72rem; color: var(--accent); font-weight: 600; margin-top: 2px; }
+  #no-data-msg { padding: 20px 16px; font-size: 0.72rem; color: var(--muted); text-align: center; }
+
+  /* ZOOM */
+  .zoom-controls { position: absolute; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 2px; z-index: 10; }
+  .zoom-controls button {
+    width: 28px; height: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .zoom-controls button:hover { background: var(--accent); color: var(--bg); }
+
+  #status { position: absolute; bottom: 10px; left: 12px; font-size: 0.62rem; color: var(--muted); }
+
+  #loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg); z-index: 200;
+    flex-direction: column; gap: 14px;
+    font-size: 0.75rem; color: var(--muted); letter-spacing: 0.1em;
+  }
+  .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #load-msg { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>County Wage Explorer</h1>
+
+  <div class="filter-group">
+    <label>Filter by Occupation (OES_SOCTITLE)</label>
+    <div class="autocomplete-wrap">
+      <input id="filter-input" type="text" placeholder="Type to search occupations..." autocomplete="off" />
+      <div id="autocomplete-list"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:4px;">
+    <label style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Metric</label>
+    <div class="metric-group">
+      <button class="metric-btn" data-metric="l1">Level 1</button>
+      <button class="metric-btn" data-metric="l2">Level 2</button>
+      <button class="metric-btn" data-metric="l3">Level 3</button>
+      <button class="metric-btn" data-metric="l4">Level 4</button>
+      <button class="metric-btn active" data-metric="avg">Average</button>
+    </div>
+  </div>
+
+  <div id="legend">
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <div id="legend-bar"></div>
+      <div class="legend-labels">
+        <span id="legend-min">$0</span>
+        <span id="legend-max">$200+</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div id="loading">
+    <div class="spinner"></div>
+    <div id="load-msg">LOADING MAP & DATA...</div>
+  </div>
+
+  <div id="map-container">
+    <svg id="svg-map" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="zoom-controls">
+      <button id="btn-zoom-in">+</button>
+      <button id="btn-zoom-out">−</button>
+      <button id="btn-reset" title="Reset">⌂</button>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <div id="side-panel">
+    <h3 id="panel-title">Select an Occupation</h3>
+    <div id="county-list">
+      <div id="no-data-msg">Use the filter above to select an occupation and see county-level data.</div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+// ---- CSV DATA SOURCE ----
+// UPDATE THIS URL to point to your CSV file
+// const CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/sampleMerged.csv';
+const CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/merged3yrsV2.csv';
+
+// CSV columns: Area(0), SocCode(1), GeoLvl(2), Level1(3), Level2(4), Level3(5), Level4(6), Average(7), AreaName(8), StateAb(9), State(10), CountyTownName(11), OES_SOCTITLE(12), ...
+
+let titleIndex = {}; // title -> [{county, stAb, l1,l2,l3,l4,avg}]
+let countyIndex = {}; // "CountyName|ST" -> {title -> {l1..avg}}
+let TITLES = [];
+let selectedTitle = null;
+let activeMetric = 'avg';
+let currentData = {};
+
+async function loadCSVData() {
+  const response = await fetch(CSV_URL);
+  if (!response.ok) throw new Error('Failed to fetch CSV: ' + response.status);
+  const text = await response.text();
+  const lines = text.split('\n');
+  const titleSet = new Set();
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    // Parse CSV line (handles quoted fields with commas)
+    const fields = [];
+    let current = '';
+    let inQuotes = false;
+    for (let j = 0; j < line.length; j++) {
+      const ch = line[j];
+      if (inQuotes) {
+        if (ch === '"' && line[j + 1] === '"') { current += '"'; j++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { current += ch; }
+      } else {
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === ',') { fields.push(current.trim()); current = ''; }
+        else { current += ch; }
+      }
+    }
+    fields.push(current.trim());
+
+    if (fields.length < 13) continue;
+
+    // CSV columns: Area(0), SocCode(1), GeoLvl(2), Level1(3), Level2(4), Level3(5), Level4(6),
+    //   Average(7), AreaName(8), StateAb(9), State(10), CountyTownName(11), OES_SOCTITLE(12), ...
+    const county = fields[11];
+    const stAb   = fields[9];
+    const title  = fields[12];
+    const l1     = fields[3];
+    const l2     = fields[4];
+    const l3     = fields[5];
+    const l4     = fields[6];
+    const avg    = fields[7];
+
+    // Skip header row
+    if (i === 0 && (county.toLowerCase() === 'countytownname' || l1.toLowerCase() === 'level1')) continue;
+
+    titleSet.add(title);
+    const key = county + '|' + stAb;
+    if (!titleIndex[title]) titleIndex[title] = [];
+    titleIndex[title].push({county, stAb, l1: +l1||0, l2: +l2||0, l3: +l3||0, l4: +l4||0, avg: +avg||0});
+    if (!countyIndex[key]) countyIndex[key] = {};
+    countyIndex[key][title] = {l1: +l1||0, l2: +l2||0, l3: +l3||0, l4: +l4||0, avg: +avg||0};
+  }
+
+  TITLES = [...titleSet].sort();
+}
+
+// Color scale
+function valueToColor(val, min, max) {
+  if (val === null || val === undefined) return '#151c2e';
+  const t = Math.min(1, Math.max(0, (val - min) / (max - min || 1)));
+  // blue -> cyan -> yellow -> red
+  if (t < 0.33) {
+    const s = t / 0.33;
+    return lerpColor('#1e3a5f', '#38bdf8', s);
+  } else if (t < 0.66) {
+    const s = (t - 0.33) / 0.33;
+    return lerpColor('#38bdf8', '#f0b429', s);
+  } else {
+    const s = (t - 0.66) / 0.34;
+    return lerpColor('#f0b429', '#ef4444', s);
+  }
+}
+
+function lerpColor(a, b, t) {
+  const ah = parseInt(a.slice(1), 16);
+  const bh = parseInt(b.slice(1), 16);
+  const ar = (ah>>16)&0xff, ag = (ah>>8)&0xff, ab = ah&0xff;
+  const br = (bh>>16)&0xff, bg = (bh>>8)&0xff, bb = bh&0xff;
+  const r = Math.round(ar + (br-ar)*t);
+  const g = Math.round(ag + (bg-ag)*t);
+  const bl2 = Math.round(ab + (bb-ab)*t);
+  return '#' + [r,g,bl2].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+function fmt(v) { return v ? '$' + v.toFixed(2) : 'N/A'; }
+</script>
+
+<script>
+// Load D3 and TopoJSON, then render map
+function loadScript(src) {
+  return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+}
+
+async function init() {
+  document.getElementById('load-msg').textContent = 'LOADING LIBRARIES...';
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js');
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js');
+  document.getElementById('load-msg').textContent = 'LOADING CSV DATA...';
+  await loadCSVData();
+  document.getElementById('load-msg').textContent = 'LOADING MAP TOPOLOGY...';
+  const us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-albers-10m.json');
+  document.getElementById('loading').style.display = 'none';
+
+  // Build FIPS -> county/state name lookup from topojson
+  const counties = topojson.feature(us, us.objects.counties);
+  const states = topojson.feature(us, us.objects.states);
+  const stateMesh = topojson.mesh(us, us.objects.states, (a,b)=>a!==b);
+
+  // State FIPS -> abbreviation
+  const STATE_AB = {
+    "01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA","08":"CO","09":"CT","10":"DE",
+    "11":"DC","12":"FL","13":"GA","15":"HI","16":"ID","17":"IL","18":"IN","19":"IA",
+    "20":"KS","21":"KY","22":"LA","23":"ME","24":"MD","25":"MA","26":"MI","27":"MN",
+    "28":"MS","29":"MO","30":"MT","31":"NE","32":"NV","33":"NH","34":"NJ","35":"NM",
+    "36":"NY","37":"NC","38":"ND","39":"OH","40":"OK","41":"OR","42":"PA","44":"RI",
+    "45":"SC","46":"SD","47":"TN","48":"TX","49":"UT","50":"VT","51":"VA","53":"WA",
+    "54":"WV","55":"WI","56":"WY","72":"PR","78":"VI"
+  };
+  const STATE_NAMES = {
+    "01":"Alabama","02":"Alaska","04":"Arizona","05":"Arkansas","06":"California",
+    "08":"Colorado","09":"Connecticut","10":"Delaware","11":"District of Columbia",
+    "12":"Florida","13":"Georgia","15":"Hawaii","16":"Idaho","17":"Illinois","18":"Indiana",
+    "19":"Iowa","20":"Kansas","21":"Kentucky","22":"Louisiana","23":"Maine","24":"Maryland",
+    "25":"Massachusetts","26":"Michigan","27":"Minnesota","28":"Mississippi","29":"Missouri",
+    "30":"Montana","31":"Nebraska","32":"Nevada","33":"New Hampshire","34":"New Jersey",
+    "35":"New Mexico","36":"New York","37":"North Carolina","38":"North Dakota","39":"Ohio",
+    "40":"Oklahoma","41":"Oregon","42":"Pennsylvania","44":"Rhode Island","45":"South Carolina",
+    "46":"South Dakota","47":"Tennessee","48":"Texas","49":"Utah","50":"Vermont","51":"Virginia",
+    "53":"Washington","54":"West Virginia","55":"Wisconsin","56":"Wyoming","72":"Puerto Rico","78":"U.S. Virgin Islands"
+  };
+
+  // FIPS -> {name, stAb, stateName}
+  const fipsInfo = {};
+  counties.features.forEach(f => {
+    const fips = String(f.id).padStart(5,'0');
+    const sfips = fips.slice(0,2);
+    fipsInfo[fips] = {
+      name: f.properties.name,
+      stAb: STATE_AB[sfips] || '',
+      stateName: STATE_NAMES[sfips] || ''
+    };
+  });
+
+  // Build reverse lookup: "CountyName|ST" -> fips (try multiple county name forms)
+  const nameFipsMap = {};
+  counties.features.forEach(f => {
+    const fips = String(f.id).padStart(5,'0');
+    const sfips = fips.slice(0,2);
+    const stAb = STATE_AB[sfips] || '';
+    const baseName = f.properties.name;
+    // Store plain name
+    nameFipsMap[baseName + '|' + stAb] = fips;
+    // With "County" suffix
+    nameFipsMap[baseName + ' County|' + stAb] = fips;
+    nameFipsMap[baseName + ' Parish|' + stAb] = fips;
+    nameFipsMap[baseName + ' Borough|' + stAb] = fips;
+    nameFipsMap[baseName + ' Census Area|' + stAb] = fips;
+    nameFipsMap[baseName + ' Municipality|' + stAb] = fips;
+    nameFipsMap[baseName.toUpperCase() + '|' + stAb] = fips;
+  });
+
+  function resolveCountyFips(county, stAb) {
+    // Direct lookup
+    let fips = nameFipsMap[county + '|' + stAb];
+    if (fips) return fips;
+    // Strip common suffixes and try
+    const stripped = county.replace(/ County$| Parish$| Borough$| Census Area$| Municipality$| Municipio$| city$| City$/, '').trim();
+    fips = nameFipsMap[stripped + '|' + stAb];
+    if (fips) return fips;
+    fips = nameFipsMap[stripped + ' County|' + stAb];
+    if (fips) return fips;
+    fips = nameFipsMap[stripped + ' Parish|' + stAb];
+    if (fips) return fips;
+    return null;
+  }
+
+  // SVG setup
+  const svg = d3.select('#svg-map');
+  const g = svg.append('g');
+  const path = d3.geoPath();
+
+  const countyPaths = g.selectAll('.county')
+    .data(counties.features)
+    .join('path')
+    .attr('class', 'county no-data')
+    .attr('d', path)
+    .attr('fill', '#151c2e');
+
+  g.append('path').datum(stateMesh).attr('class','state-boundary').attr('d',path);
+
+  // Zoom
+  const zoom = d3.zoom().scaleExtent([1,20]).on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoom);
+  document.getElementById('btn-zoom-in').onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1.6);
+  document.getElementById('btn-zoom-out').onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1/1.6);
+  document.getElementById('btn-reset').onclick = () => svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+
+  // Tooltip
+  const tooltip = document.getElementById('tooltip');
+  function showTip(event, fips) {
+    const info = fipsInfo[fips];
+    if (!info) return;
+    const key = info.name + ' County|' + info.stAb;
+    const cdata = countyIndex[key] || {};
+    const tdata = selectedTitle ? cdata[selectedTitle] : null;
+
+    let html = `<div class="tt-county">${info.name}</div>
+      <div class="tt-state">${info.stateName} (${info.stAb})</div>`;
+
+    if (selectedTitle) {
+      html += `<div class="tt-title">${selectedTitle}</div>`;
+      if (tdata) {
+        const metricLabels = {l1:'Level 1', l2:'Level 2', l3:'Level 3', l4:'Level 4', avg:'Average'};
+        ['l1','l2','l3','l4','avg'].forEach(m => {
+          const v = tdata[m];
+          html += `<div class="tt-row"><span class="lbl">${metricLabels[m]}</span><span class="val${m===activeMetric?' highlight':''}">${fmt(v)}</span></div>`;
+        });
+      } else {
+        html += `<div class="tt-nodata">No data for this occupation</div>`;
+      }
+    } else {
+      html += `<div class="tt-nodata">Select an occupation to view wages</div>`;
+    }
+
+    tooltip.innerHTML = html;
+    tooltip.classList.add('visible');
+    moveTip(event);
+  }
+
+  function moveTip(event) {
+    const main = document.querySelector('.main').getBoundingClientRect();
+    let x = event.clientX - main.left + 14;
+    let y = event.clientY - main.top - 10;
+    if (x + 240 > main.width - 280) x -= 260;
+    if (y + 160 > main.height) y -= 170;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  }
+
+  countyPaths
+    .on('mouseover', function(event, d) {
+      const fips = String(d.id).padStart(5,'0');
+      showTip(event, fips);
+    })
+    .on('mousemove', moveTip)
+    .on('mouseout', () => tooltip.classList.remove('visible'));
+
+  // ---- UPDATE MAP ----
+  function updateMap() {
+    if (!selectedTitle) {
+      countyPaths.attr('fill','#151c2e').classed('no-data', true);
+      document.getElementById('legend-min').textContent = '$0';
+      document.getElementById('legend-max').textContent = '--';
+      return;
+    }
+
+    const rows = titleIndex[selectedTitle] || [];
+    // Build fips -> value
+    const fipsVal = {};
+    rows.forEach(r => {
+      const fips = resolveCountyFips(r.county, r.stAb);
+      if (fips) fipsVal[fips] = r[activeMetric];
+    });
+
+    const vals = Object.values(fipsVal).filter(v => v > 0);
+    const minVal = vals.length ? Math.min(...vals) : 0;
+    const maxVal = vals.length ? Math.max(...vals) : 100;
+
+    document.getElementById('legend-min').textContent = fmt(minVal);
+    document.getElementById('legend-max').textContent = fmt(maxVal);
+
+    countyPaths.each(function(d) {
+      const fips = String(d.id).padStart(5,'0');
+      const val = fipsVal[fips];
+      const el = d3.select(this);
+      if (val !== undefined && val > 0) {
+        el.attr('fill', valueToColor(val, minVal, maxVal)).classed('no-data', false);
+      } else {
+        el.attr('fill','#151c2e').classed('no-data', true);
+      }
+    });
+
+    document.getElementById('status').textContent =
+      `Showing ${Object.keys(fipsVal).length} counties for "${selectedTitle}"`;
+
+    // Update side panel
+    updatePanel(rows, minVal, maxVal);
+  }
+
+  function updatePanel(rows, minVal, maxVal) {
+    const panel = document.getElementById('county-list');
+    const title = document.getElementById('panel-title');
+
+    if (!rows || rows.length === 0) {
+      title.textContent = 'No Data';
+      panel.innerHTML = '<div id="no-data-msg">No county data for this occupation.</div>';
+      return;
+    }
+
+    const sorted = [...rows].sort((a,b) => b[activeMetric] - a[activeMetric]);
+    title.textContent = `Top Counties (${sorted.length})`;
+
+    const metricLabels = {l1:'Lvl1', l2:'Lvl2', l3:'Lvl3', l4:'Lvl4', avg:'Avg'};
+    panel.innerHTML = sorted.map(r => `
+      <div class="county-item">
+        <div class="ci-name">${r.county}</div>
+        <div class="ci-state">${r.stAb}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+          ${['l1','l2','l3','l4','avg'].map(m =>
+            `<span style="font-size:0.62rem;color:${m===activeMetric?'var(--accent)':'var(--muted)'}">
+              ${metricLabels[m]}: <strong style="color:${m===activeMetric?'var(--accent)':'var(--text)'}">${fmt(r[m])}</strong>
+            </span>`
+          ).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ---- AUTOCOMPLETE ----
+  const input = document.getElementById('filter-input');
+  const acList = document.getElementById('autocomplete-list');
+  let acIndex = -1;
+
+  function renderAC(items) {
+    if (items.length === 0) { acList.classList.remove('open'); return; }
+    acList.innerHTML = items.slice(0,30).map((t,i) =>
+      `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">${t}</div>`
+    ).join('');
+    acList.classList.add('open');
+    acIndex = -1;
+    acList.querySelectorAll('.ac-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        selectTitle(el.dataset.title);
+      });
+    });
+  }
+
+  function selectTitle(title) {
+    selectedTitle = title;
+    input.value = title;
+    acList.classList.remove('open');
+    updateMap();
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.toLowerCase().trim();
+    if (!q) { acList.classList.remove('open'); return; }
+    const matches = TITLES.filter(t => t.toLowerCase().includes(q));
+    renderAC(matches);
+  });
+
+  input.addEventListener('keydown', e => {
+    const items = acList.querySelectorAll('.ac-item');
+    if (e.key === 'ArrowDown') { acIndex = Math.min(acIndex+1, items.length-1); items.forEach((el,i)=>el.classList.toggle('active',i===acIndex)); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { acIndex = Math.max(acIndex-1, 0); items.forEach((el,i)=>el.classList.toggle('active',i===acIndex)); e.preventDefault(); }
+    else if (e.key === 'Enter' && acIndex >= 0 && items[acIndex]) { selectTitle(items[acIndex].dataset.title); }
+    else if (e.key === 'Escape') { acList.classList.remove('open'); }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.autocomplete-wrap')) acList.classList.remove('open');
+  });
+
+  // ---- METRIC BUTTONS ----
+  document.querySelectorAll('.metric-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeMetric = btn.dataset.metric;
+      updateMap();
+    });
+  });
+}
+
+init().catch(err => {
+  document.getElementById('loading').innerHTML =
+    '<span style="color:#ef4444">Failed to load. Check connection.</span><br><small>' + err.message + '</small>';
+  console.error(err);
+});
+</script>
+</body>
+</html>

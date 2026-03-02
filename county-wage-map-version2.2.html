@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US County Wage Explorer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=DM+Serif+Display&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0b0e17;
+    --surface: #131722;
+    --surface2: #1a2033;
+    --border: #252d42;
+    --accent: #f0b429;
+    --accent2: #38bdf8;
+    --text: #dde3f0;
+    --muted: #5a6580;
+    --font: 'IBM Plex Mono', monospace;
+    --serif: 'DM Serif Display', serif;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: var(--font); height: 100vh; display: flex; flex-direction: column; overflow: hidden; font-size: 13px; }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  header h1 { font-family: var(--serif); font-size: 1.3rem; color: var(--accent); white-space: nowrap; }
+
+  .filter-group { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 220px; max-width: 420px; }
+  .filter-group label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  #filter-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.72rem;
+    padding: 6px 10px;
+    outline: none;
+    width: 100%;
+  }
+  #filter-input:focus { border-color: var(--accent); }
+  #filter-input:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* LEGEND */
+  #legend { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+  #legend-bar { width: 140px; height: 10px; background: linear-gradient(to right,#1e3a5f,#38bdf8,#f0b429,#ef4444); border: 1px solid var(--border); }
+  .legend-labels { display: flex; justify-content: space-between; width: 140px; font-size: 0.6rem; color: var(--muted); }
+
+  /* ── MAIN ── */
+  .main { flex: 1; position: relative; overflow: hidden; display: flex; }
+
+  #map-container { flex: 1; cursor: grab; position: relative; }
+  #map-container:active { cursor: grabbing; }
+  svg { width: 100%; height: 100%; display: block; }
+
+  .county { stroke: #1e2840; stroke-width: 0.3; cursor: pointer; transition: opacity 0.1s; }
+  .county:hover { opacity: 0.75; stroke: #fff; stroke-width: 0.6; }
+  .county.no-data { fill: #151c2e; }
+  .state-boundary { fill: none; stroke: #3a4a6a; stroke-width: 0.8; pointer-events: none; }
+
+  /* TOOLTIP */
+  #tooltip {
+    position: absolute; background: var(--surface); border: 1px solid var(--accent);
+    padding: 10px 14px; pointer-events: none; opacity: 0;
+    transition: opacity 0.12s; z-index: 50; min-width: 200px; line-height: 1.6;
+  }
+  #tooltip.visible { opacity: 1; }
+  #tooltip .tt-county { font-family: var(--serif); font-size: 1rem; color: var(--accent); }
+  #tooltip .tt-state { font-size: 0.65rem; color: var(--muted); margin-bottom: 6px; }
+  #tooltip .tt-title { font-size: 0.68rem; color: var(--accent2); margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+  .tt-row { display: flex; justify-content: space-between; gap: 16px; font-size: 0.7rem; }
+  .tt-row .lbl { color: var(--muted); }
+  .tt-row .val { color: var(--text); font-weight: 600; }
+  .tt-row .val.highlight { color: var(--accent); }
+  #tooltip .tt-nodata { font-size: 0.7rem; color: var(--muted); font-style: italic; }
+
+  /* SIDE PANEL */
+  #side-panel {
+    width: 260px; background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
+  }
+  #side-panel h3 {
+    font-family: var(--serif); font-size: 0.9rem; color: var(--accent);
+    padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface2);
+  }
+  #county-list { flex: 1; overflow-y: auto; }
+  #county-list::-webkit-scrollbar { width: 4px; }
+  #county-list::-webkit-scrollbar-thumb { background: var(--border); }
+  .county-item { padding: 8px 16px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .county-item:hover { background: var(--surface2); }
+  .county-item .ci-name { font-size: 0.72rem; color: var(--text); }
+  .county-item .ci-state { font-size: 0.6rem; color: var(--muted); }
+  #no-data-msg { padding: 20px 16px; font-size: 0.72rem; color: var(--muted); text-align: center; line-height: 1.9; }
+
+  /* ZOOM */
+  .zoom-controls { position: absolute; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 2px; z-index: 10; }
+  .zoom-controls button {
+    width: 28px; height: 28px; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--font); font-size: 1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .zoom-controls button:hover { background: var(--accent); color: var(--bg); }
+
+  #status { position: absolute; bottom: 10px; left: 12px; font-size: 0.62rem; color: var(--muted); }
+
+  /* LOADING OVERLAY */
+  #loading {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: var(--bg); z-index: 200; flex-direction: column; gap: 14px;
+    font-size: 0.75rem; color: var(--muted); letter-spacing: 0.1em;
+  }
+  .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+
+</style>
+</head>
+<body>
+
+<header>
+  <h1>County Wage Explorer</h1>
+
+  <!-- Occupation filter -->
+  <div class="filter-group">
+    <label>Filter by Occupation (OES_SOCTITLE)</label>
+    <div class="autocomplete-wrap">
+      <input id="filter-input" type="text" placeholder="Load a CSV to begin…" autocomplete="off" disabled />
+      <div id="autocomplete-list"></div>
+    </div>
+  </div>
+
+  <!-- Metric selector -->
+  <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+    <label style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Metric</label>
+    <div class="metric-group">
+      <button class="metric-btn" data-metric="l1" disabled>Level 1</button>
+      <button class="metric-btn" data-metric="l2" disabled>Level 2</button>
+      <button class="metric-btn" data-metric="l3" disabled>Level 3</button>
+      <button class="metric-btn" data-metric="l4" disabled>Level 4</button>
+      <button class="metric-btn active" data-metric="avg" disabled>Average</button>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div id="legend">
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <div id="legend-bar"></div>
+      <div class="legend-labels">
+        <span id="legend-min">—</span>
+        <span id="legend-max">—</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Map topology loading overlay -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <span id="load-msg">LOADING MAP TOPOLOGY…</span>
+  </div>
+
+  <!-- Map -->
+  <div id="map-container">
+    <svg id="svg-map" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="zoom-controls">
+      <button id="btn-zoom-in">+</button>
+      <button id="btn-zoom-out">−</button>
+      <button id="btn-reset" title="Reset view">⌂</button>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <!-- Side panel -->
+  <div id="side-panel">
+    <h3 id="panel-title">Select an Occupation</h3>
+    <div id="county-list">
+      <div id="no-data-msg">Load a CSV then select an<br>occupation to colour the map.</div>
+    </div>
+  </div>
+
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const CSV_PATH = 'https://raw.githubusercontent.com/deka1105/OFLCDashboard/refs/heads/main/sample.csv'; // ← path or URL to your CSV file
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+function lerpColor(a, b, t) {
+  const ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
+  const ar=(ah>>16)&0xff, ag=(ah>>8)&0xff, ab=ah&0xff;
+  const br=(bh>>16)&0xff, bg=(bh>>8)&0xff, bb=bh&0xff;
+  const r=Math.round(ar+(br-ar)*t), g=Math.round(ag+(bg-ag)*t), bl=Math.round(ab+(bb-ab)*t);
+  return '#'+[r,g,bl].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+function valueToColor(val, min, max) {
+  const t = Math.min(1, Math.max(0, (val-min)/(max-min||1)));
+  if (t < 0.33) return lerpColor('#1e3a5f','#38bdf8', t/0.33);
+  if (t < 0.66) return lerpColor('#38bdf8','#f0b429', (t-0.33)/0.33);
+  return lerpColor('#f0b429','#ef4444', (t-0.66)/0.34);
+}
+
+function fmt(v) { return (v && +v > 0) ? '$' + (+v).toFixed(2) : 'N/A'; }
+
+// ── CSV parser (handles quoted fields & CRLF) ─────────────────────────────────
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/);
+  const headers = splitLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const vals = splitLine(line);
+    const row = {};
+    headers.forEach((h, j) => { row[h.trim()] = (vals[j] ?? '').trim(); });
+    rows.push(row);
+  }
+  return { headers: headers.map(h => h.trim()), rows };
+}
+
+function splitLine(line) {
+  const out = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (inQ && line[i+1]==='"') { cur+='"'; i++; } else inQ=!inQ; }
+    else if (c === ',' && !inQ) { out.push(cur); cur=''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+// ── App state ─────────────────────────────────────────────────────────────────
+let titleIndex  = {};  // title  -> [{county, stAb, l1,l2,l3,l4,avg}]
+let countyIndex = {};  // "name|ST" -> {title -> {l1..avg}}
+let TITLES      = [];
+let selectedTitle = null;
+let activeMetric  = 'avg';
+
+// Set after map topology loads
+let countyPaths, fipsInfo, nameFipsMap, svgSel, zoomBehavior;
+
+// ── Ingest CSV rows ───────────────────────────────────────────────────────────
+function ingestRows(rows) {
+  titleIndex  = {};
+  countyIndex = {};
+  const titleSet = new Set();
+
+  rows.forEach(r => {
+    const county = (r.CountyTownName || '').trim();
+    const stAb   = (r.StateAb        || '').trim();
+    const title  = (r.OES_SOCTITLE   || '').trim();
+    if (!county || !stAb || !title) return;
+
+    const entry = { county, stAb,
+      l1: parseFloat(r.Level1)  || 0,
+      l2: parseFloat(r.Level2)  || 0,
+      l3: parseFloat(r.Level3)  || 0,
+      l4: parseFloat(r.Level4)  || 0,
+      avg:parseFloat(r.Average) || 0,
+    };
+    titleSet.add(title);
+    if (!titleIndex[title]) titleIndex[title] = [];
+    titleIndex[title].push(entry);
+
+    const key = county + '|' + stAb;
+    if (!countyIndex[key]) countyIndex[key] = {};
+    countyIndex[key][title] = entry;
+  });
+
+  TITLES = [...titleSet].sort();
+}
+
+// ── County name → FIPS ───────────────────────────────────────────────────────
+function resolveCountyFips(county, stAb) {
+  let f = nameFipsMap[county + '|' + stAb];
+  if (f) return f;
+  const s = county.replace(/ County$| Parish$| Borough$| Census Area$| Municipality$| Municipio$| city$| City$/,'').trim();
+  return nameFipsMap[s+'|'+stAb] || nameFipsMap[s+' County|'+stAb] || nameFipsMap[s+' Parish|'+stAb] || null;
+}
+
+// ── Map update ────────────────────────────────────────────────────────────────
+function updateMap() {
+  if (!countyPaths) return;
+
+  if (!selectedTitle) {
+    countyPaths.attr('fill','#151c2e').classed('no-data',true);
+    document.getElementById('legend-min').textContent = '—';
+    document.getElementById('legend-max').textContent = '—';
+    return;
+  }
+
+  const rows = titleIndex[selectedTitle] || [];
+  const fipsVal = {};
+  rows.forEach(r => {
+    const fips = resolveCountyFips(r.county, r.stAb);
+    if (fips) fipsVal[fips] = r[activeMetric];
+  });
+
+  const vals   = Object.values(fipsVal).filter(v => v > 0);
+  const minVal = vals.length ? Math.min(...vals) : 0;
+  const maxVal = vals.length ? Math.max(...vals) : 100;
+
+  document.getElementById('legend-min').textContent = fmt(minVal);
+  document.getElementById('legend-max').textContent = fmt(maxVal);
+
+  countyPaths.each(function(d) {
+    const fips = String(d.id).padStart(5,'0');
+    const val  = fipsVal[fips];
+    const el   = d3.select(this);
+    if (val !== undefined && val > 0) {
+      el.attr('fill', valueToColor(val, minVal, maxVal)).classed('no-data', false);
+    } else {
+      el.attr('fill','#151c2e').classed('no-data',true);
+    }
+  });
+
+  document.getElementById('status').textContent =
+    `${Object.keys(fipsVal).length} counties · "${selectedTitle}"`;
+
+  updatePanel(rows);
+}
+
+function updatePanel(rows) {
+  const panel  = document.getElementById('county-list');
+  const header = document.getElementById('panel-title');
+  if (!rows || !rows.length) {
+    header.textContent = 'No Data';
+    panel.innerHTML = '<div id="no-data-msg">No county data for this occupation.</div>';
+    return;
+  }
+  const sorted = [...rows].sort((a,b) => b[activeMetric]-a[activeMetric]);
+  header.textContent = `Top Counties (${sorted.length})`;
+  const L = {l1:'Lvl1',l2:'Lvl2',l3:'Lvl3',l4:'Lvl4',avg:'Avg'};
+  panel.innerHTML = sorted.map(r => `
+    <div class="county-item">
+      <div class="ci-name">${r.county}</div>
+      <div class="ci-state">${r.stAb}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+        ${['l1','l2','l3','l4','avg'].map(m=>`
+          <span style="font-size:0.62rem;color:${m===activeMetric?'var(--accent)':'var(--muted)'}">
+            ${L[m]}: <strong style="color:${m===activeMetric?'var(--accent)':'var(--text)'}">${fmt(r[m])}</strong>
+          </span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+// ── Autocomplete ──────────────────────────────────────────────────────────────
+function initAutocomplete() {
+  const input  = document.getElementById('filter-input');
+  const acList = document.getElementById('autocomplete-list');
+  let acIdx    = -1;
+
+  input.disabled    = false;
+  input.placeholder = 'Type to search occupations…';
+
+  function renderAC(items) {
+    if (!items.length) { acList.classList.remove('open'); return; }
+    acList.innerHTML = items.slice(0,30).map(t =>
+      `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">${t}</div>`
+    ).join('');
+    acList.classList.add('open'); acIdx = -1;
+    acList.querySelectorAll('.ac-item').forEach(el =>
+      el.addEventListener('mousedown', e => { e.preventDefault(); pickTitle(el.dataset.title); })
+    );
+  }
+
+  function pickTitle(title) {
+    selectedTitle = title;
+    input.value   = title;
+    acList.classList.remove('open');
+    updateMap();
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.toLowerCase().trim();
+    if (!q) { acList.classList.remove('open'); return; }
+    renderAC(TITLES.filter(t => t.toLowerCase().includes(q)));
+  });
+
+  input.addEventListener('keydown', e => {
+    const items = acList.querySelectorAll('.ac-item');
+    if (e.key==='ArrowDown')  { acIdx=Math.min(acIdx+1,items.length-1); items.forEach((el,i)=>el.classList.toggle('active',i===acIdx)); e.preventDefault(); }
+    else if (e.key==='ArrowUp') { acIdx=Math.max(acIdx-1,0); items.forEach((el,i)=>el.classList.toggle('active',i===acIdx)); e.preventDefault(); }
+    else if (e.key==='Enter' && acIdx>=0 && items[acIdx]) pickTitle(items[acIdx].dataset.title);
+    else if (e.key==='Escape') acList.classList.remove('open');
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.autocomplete-wrap')) acList.classList.remove('open');
+  });
+}
+
+// ── Load and ingest CSV text ──────────────────────────────────────────────────
+function handleCSVText(csvText, label) {
+  const { rows, headers } = parseCSV(csvText);
+
+  const needed = ['OES_SOCTITLE','CountyTownName','StateAb','Level1','Level2','Level3','Level4','Average'];
+  const missing = needed.filter(c => !headers.includes(c));
+  if (missing.length) {
+    alert(`Missing columns: ${missing.join(', ')}\n\nFound: ${headers.join(', ')}`);
+    return;
+  }
+
+  ingestRows(rows);
+
+  document.getElementById('no-data-msg').textContent = 'Select an occupation above to colour the map.';
+  document.getElementById('status').textContent =
+    `Loaded ${rows.length.toLocaleString()} rows · ${TITLES.length} occupations`;
+
+  document.querySelectorAll('.metric-btn').forEach(b => { b.disabled = false; });
+  initAutocomplete();
+
+  selectedTitle = null;
+  document.getElementById('filter-input').value = '';
+  updateMap();
+}
+
+// ── Fetch CSV from CSV_PATH ───────────────────────────────────────────────────
+async function autoLoadCSV() {
+  const label = CSV_PATH.split('/').pop() || CSV_PATH;
+  document.getElementById('load-msg').textContent = `LOADING ${label.toUpperCase()}…`;
+  try {
+    const res = await fetch(CSV_PATH);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    handleCSVText(text, label);
+    return true;
+  } catch (err) {
+    console.error('Could not load CSV:', err.message);
+    document.getElementById('status').textContent = `⚠ Could not load "${CSV_PATH}" — ${err.message}`;
+    return false;
+  }
+}
+
+// Metric buttons
+document.querySelectorAll('.metric-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeMetric = btn.dataset.metric;
+    updateMap();
+  });
+});
+
+// ── Map topology initialisation ───────────────────────────────────────────────
+async function initMap() {
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js');
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js');
+
+  const us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-albers-10m.json');
+
+  // Map loaded — fetch CSV
+  document.getElementById('loading').style.display = 'none';
+  await autoLoadCSV();
+
+  const STATE_AB = {
+    "01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA","08":"CO","09":"CT","10":"DE",
+    "11":"DC","12":"FL","13":"GA","15":"HI","16":"ID","17":"IL","18":"IN","19":"IA",
+    "20":"KS","21":"KY","22":"LA","23":"ME","24":"MD","25":"MA","26":"MI","27":"MN",
+    "28":"MS","29":"MO","30":"MT","31":"NE","32":"NV","33":"NH","34":"NJ","35":"NM",
+    "36":"NY","37":"NC","38":"ND","39":"OH","40":"OK","41":"OR","42":"PA","44":"RI",
+    "45":"SC","46":"SD","47":"TN","48":"TX","49":"UT","50":"VT","51":"VA","53":"WA",
+    "54":"WV","55":"WI","56":"WY","72":"PR","78":"VI"
+  };
+  const STATE_NAMES = {
+    "01":"Alabama","02":"Alaska","04":"Arizona","05":"Arkansas","06":"California",
+    "08":"Colorado","09":"Connecticut","10":"Delaware","11":"District of Columbia",
+    "12":"Florida","13":"Georgia","15":"Hawaii","16":"Idaho","17":"Illinois","18":"Indiana",
+    "19":"Iowa","20":"Kansas","21":"Kentucky","22":"Louisiana","23":"Maine","24":"Maryland",
+    "25":"Massachusetts","26":"Michigan","27":"Minnesota","28":"Mississippi","29":"Missouri",
+    "30":"Montana","31":"Nebraska","32":"Nevada","33":"New Hampshire","34":"New Jersey",
+    "35":"New Mexico","36":"New York","37":"North Carolina","38":"North Dakota","39":"Ohio",
+    "40":"Oklahoma","41":"Oregon","42":"Pennsylvania","44":"Rhode Island","45":"South Carolina",
+    "46":"South Dakota","47":"Tennessee","48":"Texas","49":"Utah","50":"Vermont","51":"Virginia",
+    "53":"Washington","54":"West Virginia","55":"Wisconsin","56":"Wyoming",
+    "72":"Puerto Rico","78":"U.S. Virgin Islands"
+  };
+
+  const counties  = topojson.feature(us, us.objects.counties);
+  const stateMesh = topojson.mesh(us, us.objects.states, (a,b) => a!==b);
+  const path      = d3.geoPath();
+
+  // Build FIPS lookups
+  fipsInfo    = {};
+  nameFipsMap = {};
+  counties.features.forEach(f => {
+    const fips  = String(f.id).padStart(5,'0');
+    const sfips = fips.slice(0,2);
+    const stAb  = STATE_AB[sfips] || '';
+    const name  = f.properties.name;
+    fipsInfo[fips] = { name, stAb, stateName: STATE_NAMES[sfips]||'' };
+    ['', ' County',' Parish',' Borough',' Census Area',' Municipality'].forEach(s => {
+      nameFipsMap[name+s+'|'+stAb] = fips;
+    });
+    nameFipsMap[name.toUpperCase()+'|'+stAb] = fips;
+  });
+
+  svgSel = d3.select('#svg-map');
+  const g = svgSel.append('g');
+
+  countyPaths = g.selectAll('.county')
+    .data(counties.features)
+    .join('path')
+    .attr('class','county no-data')
+    .attr('d', path)
+    .attr('fill','#151c2e');
+
+  g.append('path').datum(stateMesh).attr('class','state-boundary').attr('d',path);
+
+  // Zoom & pan
+  zoomBehavior = d3.zoom().scaleExtent([1,20]).on('zoom', e => g.attr('transform', e.transform));
+  svgSel.call(zoomBehavior);
+  document.getElementById('btn-zoom-in').onclick  = () => svgSel.transition().duration(300).call(zoomBehavior.scaleBy, 1.6);
+  document.getElementById('btn-zoom-out').onclick = () => svgSel.transition().duration(300).call(zoomBehavior.scaleBy, 1/1.6);
+  document.getElementById('btn-reset').onclick    = () => svgSel.transition().duration(500).call(zoomBehavior.transform, d3.zoomIdentity);
+
+  // Tooltip
+  const tooltip = document.getElementById('tooltip');
+
+  function showTip(event, fips) {
+    const info = fipsInfo[fips]; if (!info) return;
+    // Try several county key forms
+    let cdata = {};
+    for (const k of [info.name+' County|'+info.stAb, info.name+'|'+info.stAb,
+                     info.name+' Parish|'+info.stAb, info.name+' Borough|'+info.stAb]) {
+      if (countyIndex[k]) { cdata = countyIndex[k]; break; }
+    }
+    const tdata = selectedTitle ? cdata[selectedTitle] : null;
+
+    let html = `<div class="tt-county">${info.name}</div>
+                <div class="tt-state">${info.stateName} (${info.stAb})</div>`;
+    if (selectedTitle) {
+      html += `<div class="tt-title">${selectedTitle}</div>`;
+      if (tdata) {
+        const L = {l1:'Level 1',l2:'Level 2',l3:'Level 3',l4:'Level 4',avg:'Average'};
+        ['l1','l2','l3','l4','avg'].forEach(m => {
+          html += `<div class="tt-row">
+            <span class="lbl">${L[m]}</span>
+            <span class="val${m===activeMetric?' highlight':''}">${fmt(tdata[m])}</span>
+          </div>`;
+        });
+      } else {
+        html += `<div class="tt-nodata">No data for this occupation</div>`;
+      }
+    } else {
+      html += `<div class="tt-nodata">Select an occupation to view wages</div>`;
+    }
+    tooltip.innerHTML = html;
+    tooltip.classList.add('visible');
+    moveTip(event);
+  }
+
+  function moveTip(event) {
+    const main = document.querySelector('.main').getBoundingClientRect();
+    let x = event.clientX - main.left + 14;
+    let y = event.clientY - main.top  - 10;
+    if (x + 240 > main.width  - 270) x -= 260;
+    if (y + 175 > main.height)        y -= 185;
+    tooltip.style.left = x+'px';
+    tooltip.style.top  = y+'px';
+  }
+
+  countyPaths
+    .on('mouseover', (event, d) => showTip(event, String(d.id).padStart(5,'0')))
+    .on('mousemove',  moveTip)
+    .on('mouseout',  () => tooltip.classList.remove('visible'));
+}
+
+initMap().catch(err => {
+  document.getElementById('loading').innerHTML =
+    `<span style="color:#ef4444">Failed to load map.<br><small>${err.message}</small></span>`;
+  console.error(err);
+});
+</script>
+</body>
+</html>
