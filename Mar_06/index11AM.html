@@ -450,7 +450,9 @@
 // ---- CSV DATA SOURCE ----
 // UPDATE THIS URL to point to your CSV file
 // const CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/sampleMerged.csv';
-const CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/merged3yrsV2.csv';
+// const CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/merged3yrsV2.csv';
+
+const GEO_CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/Prof_w_links.csv';
 
 // CSV columns: Area(0), SocCode(1), GeoLvl(2), Level1(3), Level2(4), Level3(5), Level4(6), Average(7), AreaName(8), StateAb(9), State(10), CountyTownName(11), OES_SOCTITLE(12), ...
 
@@ -462,8 +464,85 @@ let selectedTitle = null;
 let activeMetric = 'avg';
 let currentData = {};
 
-async function loadCSVData() {
-  const response = await fetch(CSV_URL);
+let geoIndex = {};       // occupation -> {soccode, filename, url}
+let OCCUPATIONS = [];    // list for autocomplete
+
+// async function loadGeoCSV() {
+//   const response = await fetch(GEO_CSV_URL);
+//   if (!response.ok) throw new Error('Failed to load Profession.csv');
+//
+//   const text = await response.text();
+//   const lines = text.split('\n');
+//
+//   for (let i = 1; i < lines.length; i++) {
+//     const row = lines[i].trim();
+//     if (!row) continue;
+//
+//     const cols = row.split(',');
+//
+//     // const occupation = cols[0];
+//     // const soccode = cols[1];
+//     // const filename = cols[2];
+//     // const url = cols[3];
+//     //
+//     //
+//     const occupation = cols[4];
+//     const soccode = cols[0];
+//     const filename = cols[5];
+//     const url = cols[6];
+//
+//     geoIndex[occupation] = {
+//       soccode,
+//       filename,
+//       url
+//     };
+//
+//     OCCUPATIONS.push(occupation);
+//   }
+//
+//   OCCUPATIONS.sort();
+// }
+
+async function loadGeoCSV() {
+
+  const response = await fetch(GEO_CSV_URL);
+  if (!response.ok) throw new Error('Failed to load geo.csv');
+
+  const text = await response.text();
+  const lines = text.split('\n');
+
+  for (let i = 1; i < lines.length; i++) {
+
+    const row = lines[i].trim();
+    if (!row) continue;
+
+    const cols = row.split(',');
+
+    const soccode = cols[0];
+    const soctitle = cols[1];
+    const onetcode = cols[3];
+    const occupation = cols[4];
+    const filename = cols[5];
+    const url = cols[6];
+
+    geoIndex[occupation] = {
+      soccode,
+      soctitle,
+      onetcode,
+      filename,
+      url
+    };
+
+    OCCUPATIONS.push(occupation);
+  }
+
+  OCCUPATIONS.sort();
+}
+
+// async function loadCSVData() {
+async function loadCSVData(csvUrl) {
+  // const response = await fetch(CSV_URL);
+  const response = await fetch(csvUrl);
   if (!response.ok) throw new Error('Failed to fetch CSV: ' + response.status);
   const text = await response.text();
   const lines = text.split('\n');
@@ -495,10 +574,19 @@ async function loadCSVData() {
 
     // CSV columns: Area(0), SocCode(1), GeoLvl(2), Level1(3), Level2(4), Level3(5), Level4(6),
     //   Average(7), AreaName(8), StateAb(9), State(10), CountyTownName(11), OES_SOCTITLE(12), ...
+    // const county = fields[11];
+    // const stAb   = fields[9];
+    // const title  = fields[12];
+    // const socCode = fields[1];
     const county = fields[11];
     const stAb   = fields[9];
-    const title  = fields[12];
+
+    const oesTitle = fields[13];
+    const onetTitle = fields[16];
+
+    const title = onetTitle || oesTitle;
     const socCode = fields[1];
+
     const l1     = fields[3];
     const l2     = fields[4];
     const l3     = fields[5];
@@ -512,9 +600,29 @@ async function loadCSVData() {
     if (!titleSocCodeMap[title]) titleSocCodeMap[title] = socCode;
     const key = county + '|' + stAb;
     if (!titleIndex[title]) titleIndex[title] = [];
-    titleIndex[title].push({county, stAb, l1: +l1||0, l2: +l2||0, l3: +l3||0, l4: +l4||0, avg: +avg||0});
+    // titleIndex[title].push({county, stAb, l1: +l1||0, l2: +l2||0, l3: +l3||0, l4: +l4||0, avg: +avg||0});
+    titleIndex[title].push({
+  county,
+  stAb,
+  l1: +l1 || 0,
+  l2: +l2 || 0,
+  l3: +l3 || 0,
+  l4: +l4 || 0,
+  avg: +avg || 0,
+  onetTitle,
+  oesTitle
+});
     if (!countyIndex[key]) countyIndex[key] = {};
-    countyIndex[key][title] = {l1: +l1||0, l2: +l2||0, l3: +l3||0, l4: +l4||0, avg: +avg||0};
+    // countyIndex[key][title] = {l1: +l1||0, l2: +l2||0, l3: +l3||0, l4: +l4||0, avg: +avg||0};
+    countyIndex[key][title] = {
+  l1: +l1 || 0,
+  l2: +l2 || 0,
+  l3: +l3 || 0,
+  l4: +l4 || 0,
+  avg: +avg || 0,
+  onetTitle,
+  oesTitle
+};
   }
 
   TITLES = [...titleSet].sort();
@@ -561,8 +669,10 @@ async function init() {
   document.getElementById('load-msg').textContent = 'LOADING LIBRARIES...';
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js');
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js');
-  document.getElementById('load-msg').textContent = 'LOADING CSV DATA...';
-  await loadCSVData();
+  // document.getElementById('load-msg').textContent = 'LOADING CSV DATA...';
+  // await loadCSVData();
+  document.getElementById('load-msg').textContent = 'LOADING OCCUPATION INDEX...';
+  await loadGeoCSV();
   document.getElementById('load-msg').textContent = 'LOADING MAP TOPOLOGY...';
   const us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-albers-10m.json');
   document.getElementById('loading').style.display = 'none';
@@ -790,7 +900,19 @@ async function init() {
   function renderAC(items) {
     if (items.length === 0) { acList.classList.remove('open'); return; }
     acList.innerHTML = items.slice(0,30).map((t,i) => {
-      const soc = titleSocCodeMap[t] || '';
+      // const soc = titleSocCodeMap[t] || '';
+      // const soc = geoIndex[t] ? geoIndex[t].soccode : '';
+      const soc = geoIndex[t].soccode;
+      const title = geoIndex[t].soctitle;
+
+      return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
+        <div>${t}</div>
+        <div class="ac-soc">${soc} • ${title}</div>
+      </div>`;
+      return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
+        <div>${t}</div>
+        <div class="ac-soc">SOC: ${soc}</div>
+      </div>`;
       return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
         <div>${t}</div>
         ${soc ? `<div class="ac-soc">SOC: ${soc}</div>` : ''}
@@ -806,17 +928,64 @@ async function init() {
     });
   }
 
-  function selectTitle(title) {
-    selectedTitle = title;
-    input.value = title;
-    acList.classList.remove('open');
-    updateMap();
-  }
+  // function selectTitle(title) {
+  //   selectedTitle = title;
+  //   input.value = title;
+  //   acList.classList.remove('open');
+  //   updateMap();
+  // }
+//   async function selectTitle(title) {
+//
+//   selectedTitle = title;
+//   input.value = title;
+//   acList.classList.remove('open');
+//
+//   const geo = geoIndex[title];
+//
+//   if (!geo) return;
+//
+//   document.getElementById('loading').style.display = 'flex';
+//   document.getElementById('load-msg').textContent = 'Loading occupation data...';
+//
+//   // clear previous data
+//   titleIndex = {};
+//   countyIndex = {};
+//
+//   await loadCSVData(geo.url);
+//
+//   document.getElementById('loading').style.display = 'none';
+//
+//   updateMap();
+// }
+
+async function selectTitle(title) {
+
+  selectedTitle = title;
+  input.value = title;
+  acList.classList.remove('open');
+
+  const geo = geoIndex[title];
+  if (!geo) return;
+
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('load-msg').textContent = 'Loading occupation data...';
+
+  // clear old data
+  titleIndex = {};
+  countyIndex = {};
+
+  await loadCSVData(geo.url);
+
+  document.getElementById('loading').style.display = 'none';
+
+  updateMap();
+}
 
   input.addEventListener('input', () => {
     const q = input.value.toLowerCase().trim();
     if (!q) { acList.classList.remove('open'); return; }
-    const matches = TITLES.filter(t => t.toLowerCase().includes(q));
+    // const matches = TITLES.filter(t => t.toLowerCase().includes(q));
+    const matches = OCCUPATIONS.filter(t => t.toLowerCase().includes(q));
     renderAC(matches);
   });
 
