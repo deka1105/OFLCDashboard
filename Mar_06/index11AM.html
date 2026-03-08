@@ -525,13 +525,15 @@ async function loadGeoCSV() {
     const occupation = cols[4];
     const filename = cols[5];
     const url = cols[6];
+    const category = cols[7];
 
     geoIndex[occupation] = {
       soccode,
       soctitle,
       onetcode,
       filename,
-      url
+      url,
+      category
     };
 
     OCCUPATIONS.push(occupation);
@@ -904,7 +906,7 @@ async function init() {
       // const soc = titleSocCodeMap[t] || '';
       // const soc = geoIndex[t] ? geoIndex[t].soccode : '';
       const soc = geoIndex[t].onetcode;
-      const title = geoIndex[t].soctitle;
+      const title = geoIndex[t].category;
 
       return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
         <div>${t}</div>
