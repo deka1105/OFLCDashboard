@@ -415,7 +415,7 @@
 <!-- DISCLAIMER MODAL -->
 <div id="disclaimer-overlay">
   <div id="disclaimer-box">
-    <h2>&#9888; Thank you for visiting.
+    <h2>Thank you for visiting.
       <p>Please Read the following. </h2>
     <div id="disclaimer-text">Loading disclaimer...</div>
     <button id="disclaimer-close">I UNDERSTAND &mdash; CONTINUE</button>
@@ -877,7 +877,8 @@ async function init() {
     }
 
     const sorted = [...rows].sort((a,b) => b[activeMetric] - a[activeMetric]);
-    title.textContent = `Top Counties (${sorted.length})`;
+    // title.textContent = `Top Counties (${sorted.length})`;
+    title.textContent = `Top Counties`;
 
     const metricLabels = {l1:'Lvl1', l2:'Lvl2', l3:'Lvl3', l4:'Lvl4', avg:'Avg'};
     panel.innerHTML = sorted.map(r => `
@@ -897,39 +898,66 @@ async function init() {
 
   // ---- AUTOCOMPLETE ----
   const input = document.getElementById('filter-input');
+  // acList = input.includes(';') ? input.replaceAll(';', ',') : input;
   const acList = document.getElementById('autocomplete-list');
+  // acList = acList.includes(';') ? acList.replaceAll(';', ',') : acList;
   let acIndex = -1;
 
   function renderAC(items) {
-    if (items.length === 0) { acList.classList.remove('open'); return; }
-    acList.innerHTML = items.slice(0,30).map((t,i) => {
-      // const soc = titleSocCodeMap[t] || '';
-      // const soc = geoIndex[t] ? geoIndex[t].soccode : '';
-      const soc = geoIndex[t].onetcode;
-      const title = geoIndex[t].category;
-
-      return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
-        <div>${t}</div>
-        <div class="ac-soc">${soc} • ${title}</div>
-      </div>`;
-      return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
-        <div>${t}</div>
-        <div class="ac-soc">SOC: ${soc}</div>
-      </div>`;
-      return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
-        <div>${t}</div>
-        ${soc ? `<div class="ac-soc">SOC: ${soc}</div>` : ''}
-      </div>`;
-    }).join('');
-    acList.classList.add('open');
-    acIndex = -1;
-    acList.querySelectorAll('.ac-item').forEach(el => {
-      el.addEventListener('mousedown', e => {
-        e.preventDefault();
-        selectTitle(el.dataset.title);
+      console.log(items);
+      if (items.length === 0) { acList.classList.remove('open'); return; }
+      acList.innerHTML = items.slice(0,30).map((t,i) => {
+        const soc = geoIndex[t].onetcode;
+        const title = geoIndex[t].category;
+        const normalizedTitle = title.includes(';') ? title.replaceAll(';', ',') : title;
+        const normalizedT = t.replaceAll(';', ',');
+        return `<div class="ac-item" data-title="${normalizedT.replace(/"/g,'&quot;')}">
+          <div>${normalizedT}</div>
+          <div class="ac-soc">${soc} • ${normalizedTitle}</div>
+        </div>`;
+      }).join('');
+      acList.classList.add('open');
+      acIndex = -1;
+      acList.querySelectorAll('.ac-item').forEach(el => {
+        el.addEventListener('mousedown', e => {
+          e.preventDefault();
+          selectTitle(el.dataset.title);
+        });
       });
-    });
-  }
+    }
+
+  // function renderAC(items) {
+  //   console.log(items);
+  //   if (items.length === 0) { acList.classList.remove('open'); return; }
+  //   acList.innerHTML = items.slice(0,30).map((t,i) => {
+  //     // const soc = titleSocCodeMap[t] || '';
+  //     // const soc = geoIndex[t] ? geoIndex[t].soccode : '';
+  //     const soc = geoIndex[t].onetcode;
+  //     const title = geoIndex[t].category;
+  //     const normalizedTitle = title.includes(';') ? title.replaceAll(';', ',') : title;
+  //
+  //     return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
+  //       <div>${t}</div>
+  //       <div class="ac-soc">${soc} • ${normalizedTitle}</div>
+  //     // </div>`;
+  //     // return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
+  //     //   <div>${t}</div>
+  //     //   <div class="ac-soc">SOC: ${soc}</div>
+  //     // </div>`;
+  //     // return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
+  //     //   <div>${t}</div>
+  //     //   ${soc ? `<div class="ac-soc">SOC: ${soc}</div>` : ''}
+  //     // </div>`;
+  //   }).join('');
+  //   acList.classList.add('open');
+  //   acIndex = -1;
+  //   acList.querySelectorAll('.ac-item').forEach(el => {
+  //     el.addEventListener('mousedown', e => {
+  //       e.preventDefault();
+  //       selectTitle(el.dataset.title);
+  //     });
+  //   });
+  // }
 
   // function selectTitle(title) {
   //   selectedTitle = title;
