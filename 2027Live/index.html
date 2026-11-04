@@ -136,6 +136,13 @@
   #found-county .fc-sub { font-size: 0.6rem; color: var(--muted); margin-top: 2px; }
   #found-county .fc-wage { font-size: 1.15rem; color: var(--text); margin-top: 6px; font-weight: 600; }
   #found-county .fc-rank { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+  #found-county .fc-arc { margin-top: 8px; }
+  #found-county .fc-arc svg { display: block; overflow: visible; }
+  #found-county .fc-arc-cap {
+    font-size: 0.58rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.06em; margin-top: 1px;
+  }
+  #found-county .fc-arc-cap strong { color: var(--accent2); }
   #found-county .fc-also { font-size: 0.6rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
   #found-county .fc-also a { color: var(--accent2); cursor: pointer; text-decoration: underline; }
   #found-county .fc-clear {
@@ -1154,6 +1161,7 @@ async function init() {
       rank = `<div class="fc-rank">${METRIC_NAMES[activeMetric]} &middot; ranks ` +
              `${(all.indexOf(val) + 1).toLocaleString()} of ` +
              `${all.length.toLocaleString()} counties</div>`;
+      if (lastFipsRow[locatedFips]) rank += levelArcSvg(lastFipsRow[locatedFips]);
     }
 
     // A ZIP that genuinely straddles counties should say so rather than
