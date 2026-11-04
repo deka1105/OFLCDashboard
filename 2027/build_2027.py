@@ -242,6 +242,27 @@ def soc_wage_units():
         raise SystemExit(f"SOC codes reporting both units: {mixed}")
 
     units = annual_row.groupby(alc["SocCode"]).max().map({True: "A", False: "H"})
+
+    # An occupation with no published figure at all this year (Legislators is
+    # entirely blank in 2026-27) leaves nothing to judge by, and would fall
+    # through to 'H' -- rendering last year's $77,290 salary as "$77290.00/hr".
+    # Where the page will show a carried-over figure, take the unit from the
+    # year that figure came from.
+    signal = ((alc["Label"] == "Annual Wage") | nums.notna().any(axis=1))
+    silent = signal.groupby(alc["SocCode"]).max()
+    silent = set(silent[~silent].index)
+    if silent:
+        prev = pd.read_csv(PREV_ALC, dtype=str, keep_default_na=False,
+                           usecols=["SocCode", "Label"] + wage_cols)
+        prev = prev[prev["SocCode"].isin(silent)]
+        pnums = prev[wage_cols].apply(pd.to_numeric, errors="coerce")
+        pannual = (prev["Label"] == "Annual Wage") | (pnums.max(axis=1) >= 1000)
+        recovered = pannual.groupby(prev["SocCode"]).max().map({True: "A", False: "H"})
+        units.update(recovered)
+        print(f"  {len(silent)} SOC code(s) blank this year; unit taken from "
+              f"{PREV_LABEL}: "
+              + ", ".join(f"{s}={recovered.get(s, '?')}" for s in sorted(silent)))
+
     print(f"wage units: {(units == 'H').sum()} hourly, {(units == 'A').sum()} annual "
           f"SOC codes")
     return units
