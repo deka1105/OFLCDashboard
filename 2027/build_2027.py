@@ -81,6 +81,72 @@ def build_divided_csv():
         raise SystemExit(f"FAILED to write: {unwritten}")
 
 
+def build_zip_county():
+    """Write DividedCSV/../zip_county.csv.gz: ZIP -> county FIPS.
+
+    The wage data is keyed by OES area and county name, never by ZIP, so the
+    lookup needs an outside crosswalk. Source is the Census Bureau's 2020
+    ZCTA-to-county relationship file (public, no key):
+
+      https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/
+          tab20_zcta520_county20_natl.txt
+
+    Two things worth knowing about it:
+
+      * It lists every county a ZCTA touches geometrically, so 30% of ZCTAs
+        look 'split' -- but most of those are slivers with nobody in them.
+        The primary county is the one holding the most land, which matched all
+        22 of the hand-checked city ZIPs (Philadelphia, Brooklyn, Cambridge,
+        Palo Alto, Austin, New Orleans...). Counties holding at least 15% are
+        kept as secondaries so the page can say "also partly in X County"
+        rather than pretending the ZIP sits in one place.
+      * ZCTAs are the Census approximation of ZIPs and omit PO-box-only ZIPs,
+        so a handful of downtown ZIPs (Atlanta 30301, Phoenix 85001) are
+        absent. The page says so instead of guessing.
+
+    Land area is a proxy for population and is the weak point here: a ZIP with
+    a large rural tail can be assigned to the emptier county. HUD's crosswalk
+    carries true residential ratios and would be the upgrade, but it needs a
+    registered API key.
+    """
+    src = os.path.join(HERE, "census", "tab20_zcta520_county20_natl.txt")
+    if not os.path.exists(src):
+        raise SystemExit(
+            f"missing {src}\n  curl -o {src} \\\n"
+            "    https://www2.census.gov/geo/docs/maps-data/data/rel2020/"
+            "zcta520/tab20_zcta520_county20_natl.txt"
+        )
+
+    parts = {}
+    with open(src, encoding="utf-8-sig") as fh:
+        for rec in csv.DictReader(fh, delimiter="|"):
+            zcta = rec["GEOID_ZCTA5_20"]
+            if not zcta:
+                continue  # county rows with no ZCTA part
+            parts.setdefault(zcta, []).append(
+                (int(rec["AREALAND_PART"] or 0), rec["GEOID_COUNTY_20"]))
+
+    lines = ["zip,fips,also"]
+    split = 0
+    for zcta in sorted(parts):
+        ranked = sorted(parts[zcta], reverse=True)
+        total = sum(area for area, _ in ranked) or 1
+        primary = ranked[0][1]
+        also = [f for area, f in ranked[1:] if area / total >= 0.15]
+        if also:
+            split += 1
+        lines.append(f"{zcta},{primary}," + " ".join(also))
+
+    body = ("\n".join(lines) + "\n").encode()
+    blob = gzip.compress(body, compresslevel=9, mtime=0)
+    out = os.path.join(HERE, "zip_county.csv.gz")
+    with open(out, "wb") as fh:
+        fh.write(blob)
+    print(f"wrote {len(lines) - 1:,} ZIPs to {out} "
+          f"({len(body) / 1024:.0f} KB raw -> {len(blob) / 1024:.0f} KB gzipped); "
+          f"{split:,} span more than one county")
+
+
 def soc_wage_units():
     """Map each SOC code to 'H' (hourly rate) or 'A' (annual salary).
 
