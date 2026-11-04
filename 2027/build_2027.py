@@ -81,11 +81,63 @@ def build_divided_csv():
         raise SystemExit(f"FAILED to write: {unwritten}")
 
 
+def soc_wage_units():
+    """Map each SOC code to 'H' (hourly rate) or 'A' (annual salary).
+
+    OFLC publishes some occupations only as annual salaries -- every
+    Postsecondary Teachers code, the pilots, a handful of physician codes --
+    and the numbers alone give no clue which, so the dashboard has to be told.
+
+    ALC_Export's Label column marks the clear cases ('Annual Wage'), but it is
+    not sufficient on its own: 'High Wage' flags a wage above the OES cap and
+    sits on both hourly and annual rows (4,606 hourly, 31 annual in 2026-27).
+    Magnitude settles it. No hourly figure in the file reaches $500 and no
+    annual one falls below $15,000, so the two ranges cannot be confused; the
+    assertion below fails the build if a future year narrows that gap. The unit
+    is constant across every row of a SOC code, so one letter per code is
+    enough and the per-occupation data files stay untouched.
+    """
+    alc = pd.read_csv(os.path.join(SRC, "ALC_Export.csv"),
+                      dtype=str, keep_default_na=False)
+    wage_cols = ["Level1", "Level2", "Level3", "Level4", "Average"]
+    nums = alc[wage_cols].apply(pd.to_numeric, errors="coerce")
+
+    flat = nums.stack()
+    straddling = flat[(flat >= 500) & (flat < 15000)]
+    if not straddling.empty:
+        raise SystemExit(
+            "hourly and annual wage ranges now overlap "
+            f"({len(straddling)} values in $500-$15,000); the unit rule below "
+            "is no longer safe -- check ALC_Export.csv before rebuilding"
+        )
+
+    annual_row = (alc["Label"] == "Annual Wage") | (nums.max(axis=1) >= 1000)
+    # Label and magnitude must agree wherever Label is definitive.
+    disagree = ((alc["Label"] == "Annual Wage") & (nums.max(axis=1) < 1000)).sum()
+    if disagree:
+        raise SystemExit(f"{disagree} rows labelled 'Annual Wage' hold hourly-sized values")
+
+    # A row whose wage columns are all blank says nothing either way; ignore it
+    # when checking that a SOC code reports one unit throughout.
+    has_wage = nums.notna().any(axis=1)
+    spread = annual_row[has_wage].groupby(alc.loc[has_wage, "SocCode"]).nunique()
+    mixed = spread[spread > 1].index.tolist()
+    if mixed:
+        raise SystemExit(f"SOC codes reporting both units: {mixed}")
+
+    units = annual_row.groupby(alc["SocCode"]).max().map({True: "A", False: "H"})
+    print(f"wage units: {(units == 'H').sum()} hourly, {(units == 'A').sum()} annual "
+          f"SOC codes")
+    return units
+
+
 def build_profession_index():
     pro = pd.read_csv(os.path.join(SRC, "xwalk_plus.csv"), dtype=str, keep_default_na=False)
     pro.columns = ["SOCCODE", "SOCTITLE", "TruncOnetCode", "OnetCode", "Occupation"]
     pro["filename"] = pro["SOCCODE"] + ".csv.gz"
     pro["url"] = URL_BASE + pro["filename"]
+    # 'H' or 'A'. The page prints "/hr" or "/yr" from this instead of guessing.
+    pro["Unit"] = pro["SOCCODE"].map(soc_wage_units()).fillna("H")
 
     pro.drop(columns=["url"]).to_csv(
         os.path.join(HERE, "Prof_wO_links.csv"), index=False)
