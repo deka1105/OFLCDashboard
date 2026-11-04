@@ -154,6 +154,7 @@ def build_profession_index():
         "filename": pro["filename"],
         "url": pro["url"],
         "Category": pro["SOCTITLE"],
+        "Unit": pro["Unit"],
     })
     rearranged.to_csv(
         os.path.join(HERE, "Prof_w_linksRearrangeColumn.csv"), index=False)
