@@ -1363,6 +1363,9 @@ function writeUrlState(push) {
   const params = new URLSearchParams();
   if (selectedTitle) params.set('occ', selectedTitle);
   if (activeMetric !== 'avg') params.set('metric', activeMetric);
+  // Share the ZIP that was typed, not the FIPS it resolved to.
+  if (locatedVia) params.set('zip', locatedVia);
+  else if (locatedFips) params.set('fips', locatedFips);
   const qs = params.toString();
   const url = location.pathname + (qs ? '?' + qs : '');
   const state = { occ: selectedTitle, metric: activeMetric };
@@ -1396,13 +1399,32 @@ async function applyUrlState() {
       input.value = '';
       document.getElementById('panel-title').textContent = 'Select an Occupation';
       updateMap();
-      return;
+    } else {
+      // Tolerate a hand-edited or case-mangled title before giving up.
+      const match = geoIndex[occ] ? occ
+        : OCCUPATIONS.find(t => t.toLowerCase() === occ.toLowerCase());
+      if (match) await selectTitle(match, false);
+      else updateMap();
     }
-    // Tolerate a hand-edited or case-mangled title before giving up.
-    const match = geoIndex[occ] ? occ
-      : OCCUPATIONS.find(t => t.toLowerCase() === occ.toLowerCase());
-    if (match) await selectTitle(match, false);
-    else updateMap();
+
+    // Location last, so the card can show the wage the occupation just loaded.
+    const zip = params.get('zip');
+    const fips = params.get('fips');
+    if (zip && /^\d{5}$/.test(zip)) {
+      let hit = null;
+      try { hit = (await loadZipIndex()).get(zip); } catch (err) { /* offline */ }
+      if (hit && fipsInfo[hit.fips]) {
+        locInput.value = zip;
+        goToCounty(hit.fips, zip, false);
+      } else {
+        clearCounty(false);
+      }
+    } else if (fips && fipsInfo[fips]) {
+      locInput.value = fipsInfo[fips].name + ', ' + fipsInfo[fips].stAb;
+      goToCounty(fips, '', false);
+    } else {
+      clearCounty(false);
+    }
   } finally {
     applyingUrl = false;
     document.title = selectedTitle ? selectedTitle + ' — ' + PAGE_TITLE : PAGE_TITLE;
