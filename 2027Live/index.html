@@ -538,6 +538,7 @@
 
   <div id="legend">
     <div style="display:flex;flex-direction:column;gap:2px;">
+      <div id="unit-note"></div>
       <div id="legend-bar"></div>
       <div class="legend-labels">
         <span id="legend-min">$0</span>
@@ -1007,6 +1008,7 @@ async function init() {
 
   // ---- UPDATE MAP ----
   function updateMap() {
+    updateUnitNote();
     if (!selectedTitle) {
       countyPaths.attr('fill','#151c2e').classed('no-data', true);
       document.getElementById('legend-min').textContent = '$0';
@@ -1110,7 +1112,69 @@ async function init() {
 
 
 
-async function selectTitle(title) {
+const METRICS = ['l1','l2','l3','l4','avg'];
+const PAGE_TITLE = 'US County Wage Explorer — 2026–27';
+
+// ---- URL STATE ----
+// Put the selection in the address bar so a result can be shared, bookmarked
+// and walked back with the Back button -- and so each occupation has a URL of
+// its own rather than all 997 collapsing onto one page.
+let applyingUrl = false;
+
+function writeUrlState(push) {
+  if (applyingUrl) return;
+  const params = new URLSearchParams();
+  if (selectedTitle) params.set('occ', selectedTitle);
+  if (activeMetric !== 'avg') params.set('metric', activeMetric);
+  const qs = params.toString();
+  const url = location.pathname + (qs ? '?' + qs : '');
+  const state = { occ: selectedTitle, metric: activeMetric };
+  if (push && url !== location.pathname + location.search) {
+    history.pushState(state, '', url);
+  } else {
+    history.replaceState(state, '', url);
+  }
+  document.title = selectedTitle ? selectedTitle + ' — ' + PAGE_TITLE : PAGE_TITLE;
+}
+
+function setMetric(metric, writeUrl) {
+  if (!METRICS.includes(metric)) return;
+  activeMetric = metric;
+  document.querySelectorAll('.metric-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.metric === metric));
+  if (writeUrl) writeUrlState(false);
+}
+
+// Reads ?occ= and ?metric= and brings the page to that state without writing
+// back. Used on first load and on every Back/Forward.
+async function applyUrlState() {
+  const params = new URLSearchParams(location.search);
+  applyingUrl = true;
+  try {
+    setMetric(params.get('metric') || 'avg', false);
+    const occ = params.get('occ');
+    if (!occ) {
+      selectedTitle = null;
+      activeUnit = 'H';
+      input.value = '';
+      document.getElementById('panel-title').textContent = 'Select an Occupation';
+      updateMap();
+      return;
+    }
+    // Tolerate a hand-edited or case-mangled title before giving up.
+    const match = geoIndex[occ] ? occ
+      : OCCUPATIONS.find(t => t.toLowerCase() === occ.toLowerCase());
+    if (match) await selectTitle(match, false);
+    else updateMap();
+  } finally {
+    applyingUrl = false;
+    document.title = selectedTitle ? selectedTitle + ' — ' + PAGE_TITLE : PAGE_TITLE;
+  }
+}
+
+window.addEventListener('popstate', () => { applyUrlState(); });
+
+async function selectTitle(title, pushUrl = true) {
 
   selectedTitle = title;
   input.value = title;
@@ -1118,6 +1182,9 @@ async function selectTitle(title) {
 
   const geo = geoIndex[title];
   if (!geo) return;
+
+  activeUnit = geo.unit;
+  if (pushUrl) writeUrlState(true);
 
   // Files are keyed by SOC code, so one download covers every occupation in
   // it. Keep the parsed result so switching back is instant.
