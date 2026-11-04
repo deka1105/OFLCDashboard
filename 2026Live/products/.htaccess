@@ -1,0 +1,35 @@
+# --- SD.Folio / products — Hostinger (Apache/LiteSpeed) config ---
+
+# Security headers (replaces the ones from vercel.json)
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Make sure SVGs are served with the right MIME type
+<IfModule mod_mime.c>
+  AddType image/svg+xml .svg
+  AddType application/json .json
+</IfModule>
+
+# Caching: cache assets hard, never cache the HTML or the JSON content
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/png            "access plus 30 days"
+  ExpiresByType image/svg+xml        "access plus 30 days"
+  ExpiresByType text/javascript      "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType text/html            "access plus 0 seconds"
+  ExpiresByType application/json     "access plus 0 seconds"
+</IfModule>
+
+# Optional: serve /products/ without needing index.html in the URL (default already does this)
+DirectoryIndex index.html
+
+# Optional clean URLs (uncomment to allow /products/portfolio-updater instead of .html)
+# <IfModule mod_rewrite.c>
+#   RewriteEngine On
+#   RewriteCond %{REQUEST_FILENAME} !-d
+#   RewriteCond %{REQUEST_FILENAME}\.html -f
+#   RewriteRule ^(.*)$ $1.html [L]
+# </IfModule>

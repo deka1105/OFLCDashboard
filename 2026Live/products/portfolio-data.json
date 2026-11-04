@@ -1,0 +1,461 @@
+{
+  "identity": {
+    "name": "Shubham A. D.",
+    "role": "Data Engineer",
+    "shortName": "SD.Folio",
+    "accentColor": "#ff6a00"
+  },
+  "nav": {
+    "links": [
+      {
+        "label": "Home",
+        "href": "#hero"
+      },
+      {
+        "label": "About",
+        "href": "#about"
+      },
+      {
+        "label": "Work",
+        "href": "#projects"
+      },
+      {
+        "label": "Contact",
+        "href": "#contact"
+      }
+    ]
+  },
+  "hero": {
+    "label": "Shubham A. D. — Data Engineer",
+    "title": [
+      "Turning",
+      "Data Into",
+      "Decisions"
+    ],
+    "titleAccent": "Data",
+    "subtitle": "Data engineer and full-stack developer building ML-driven data products, pipelines, and tools that turn raw data into precise, useful outcomes.",
+    "ctaPrimary": {
+      "text": "See Work",
+      "href": "#projects"
+    },
+    "ctaSecondary": {
+      "text": "Get in Touch",
+      "href": "#contact"
+    }
+  },
+  "stats": [
+    {
+      "number": "25",
+      "suffix": "+",
+      "label": "Projects Shipped"
+    },
+    {
+      "number": "7",
+      "suffix": "y",
+      "label": "Experience"
+    },
+    {
+      "number": "28",
+      "suffix": "+",
+      "label": "Technologies"
+    },
+    {
+      "number": "∞",
+      "suffix": "",
+      "label": "Ideas Building"
+    }
+  ],
+  "projects": [
+    {
+      "num": "01 — Featured",
+      "name": "AI Log Intelligence System",
+      "tag": "Featured",
+      "thumbLabel": "log intelligence dashboard",
+      "desc": "An NLP-based log intelligence platform on Databricks that analyzes 5TB of Linux log data to surface error patterns and anomalies — cutting incident SLA breaches by 42%. Predictive MLflow models flag production bottlenecks before they escalate.",
+      "stack": [
+        "Databricks",
+        "Spark",
+        "Python",
+        "NLP",
+        "MLflow"
+      ],
+      "featured": true,
+      "link": "#",
+      "thumb": "assets/thumbs/ai-log-intelligence.svg"
+    },
+    {
+      "num": "02",
+      "name": "SessionForge Browser",
+      "tag": "Desktop App",
+      "thumbLabel": "multi-session browser",
+      "desc": "A custom Electron browser where every tab is its own isolated login session — cookies, localStorage and IndexedDB fully sandboxed per tab — so you can be signed into the same site as many different users at once. Ships as native macOS, Windows and Linux installers.",
+      "stack": [
+        "Electron",
+        "Chromium",
+        "Node.js",
+        "JavaScript"
+      ],
+      "link": "https://github.com/deka1105/SessionForgePublic",
+      "thumb": "assets/thumbs/sessionforge-browser.svg"
+    },
+    {
+      "num": "03",
+      "name": "Map Embed Service",
+      "tag": "Data Viz",
+      "thumbLabel": "embeddable world map",
+      "desc": "A zero-dependency Node.js service that turns a JSON list of countries — with optional per-country intensity values — plus your brand colors into a live, embeddable world map. Returns a copy-paste iframe or a JS snippet; update the data with one API call and every embed refreshes automatically. Runs on Node's built-in http and node:sqlite, so it's trivial to self-host.",
+      "stack": [
+        "Node.js",
+        "SQLite",
+        "REST API",
+        "SVG"
+      ],
+      "link": "https://map-plot-api.onrender.com/",
+      "thumb": "assets/thumbs/map-embed-service.svg"
+    },
+    {
+      "num": "04",
+      "name": "Multi-Stock Dynamic Dashboard",
+      "tag": "Data",
+      "thumbLabel": "stock dashboard",
+      "desc": "A real-time stock dashboard with multi-ticker comparison, portfolio P&L, technical indicators, sentiment analysis, options flow and an earnings calendar — packaged to run locally via Docker.",
+      "stack": [
+        "TypeScript",
+        "React",
+        "Docker"
+      ],
+      "link": "https://github.com/deka1105/MultistockDashboard",
+      "thumb": "assets/thumbs/multistock-dashboard.svg"
+    },
+    {
+      "num": "05",
+      "name": "County Wage Explorer",
+      "tag": "Data",
+      "thumbLabel": "wage data dashboard",
+      "desc": "An interactive dashboard that explores prevailing wage data across US counties, turning dense OFLC datasets into clear, filterable visual insights.",
+      "stack": [
+        "React",
+        "Python",
+        "Data Viz"
+      ],
+      "link": "https://oflcdashboard.sdfolio.com",
+      "thumb": "assets/thumbs/county-wage-explorer.svg"
+    },
+    {
+      "num": "06",
+      "name": "Agile Task Tracker",
+      "tag": "App",
+      "thumbLabel": "task tracker UI",
+      "desc": "A full-stack task tracker for agile teams — boards, sprints, and delegation wrapped in a minimal, functional UI built for day-to-day flow.",
+      "stack": [
+        "React",
+        "Node.js"
+      ],
+      "link": "https://agile.sdfolio.com",
+      "thumb": "assets/thumbs/agile-task-tracker.svg"
+    },
+    {
+      "num": "07",
+      "name": "Lumon Industries Portfolio",
+      "tag": "Web",
+      "thumbLabel": "isometric portfolio",
+      "desc": "A Severance-themed isometric portfolio — pixel-art rooms, a Three.js first-person view, VHS elevator transitions and a full admin CMS backed by Supabase.",
+      "stack": [
+        "Three.js",
+        "Canvas",
+        "Node.js",
+        "Supabase"
+      ],
+      "link": "https://github.com/deka1105/Lumon",
+      "thumb": "assets/thumbs/lumon-portfolio.svg"
+    },
+    {
+      "num": "08",
+      "name": "Real-time Stock Monitoring & Prediction",
+      "tag": "ML/DS",
+      "thumbLabel": "stock prediction charts",
+      "desc": "Visualizes real-time data for multiple stocks with overlapping graphs, and forecasts future prices using an LSTM model achieving 72% accuracy.",
+      "stack": [
+        "Python",
+        "TensorFlow",
+        "LSTM"
+      ],
+      "link": "#",
+      "thumb": "assets/thumbs/stock-prediction.svg"
+    },
+    {
+      "num": "09",
+      "name": "E2E Encryption ChatBot",
+      "tag": "Security",
+      "thumbLabel": "secure chat interface",
+      "desc": "A secure chat application built around a novel AES-based encryption algorithm that reduced encryption payload by 12%. Led a team of 4 using Scrum and agile delivery.",
+      "stack": [
+        "Java",
+        "Python",
+        "Cryptography"
+      ],
+      "link": "#",
+      "thumb": "assets/thumbs/e2e-encryption-chatbot.svg"
+    },
+    {
+      "num": "10",
+      "name": "Streamlit Plot Explorer",
+      "tag": "Tool",
+      "thumbLabel": "chart explorer",
+      "desc": "A web-based tool to explore and render Streamlit chart types in an interactive, developer-friendly interface, with live code editing via CodeMirror and Plotly rendering.",
+      "stack": [
+        "JavaScript",
+        "Plotly",
+        "CodeMirror"
+      ],
+      "link": "https://github.com/deka1105/StreamlitPlotExplorer",
+      "thumb": "assets/thumbs/streamlit-plot-explorer.svg"
+    },
+    {
+      "num": "11",
+      "name": "XPath Patcher",
+      "tag": "Tool",
+      "thumbLabel": "content patching engine",
+      "desc": "Replaces text at XPath locations on a page based on rules maintained in a Google Sheet — turning a spreadsheet into a lightweight, no-code content-patching engine.",
+      "stack": [
+        "JavaScript",
+        "XPath",
+        "Google Sheets API"
+      ],
+      "link": "https://github.com/deka1105/Xpath_Patcher",
+      "thumb": "assets/thumbs/xpath-patcher.svg"
+    },
+    {
+      "num": "12",
+      "name": "GoHire Automation",
+      "tag": "Automation",
+      "thumbLabel": "hiring automation",
+      "desc": "A Python and Selenium automation suite that streamlines repetitive hiring-portal workflows, replacing hours of manual data entry.",
+      "stack": [
+        "Python",
+        "Selenium",
+        "Automation"
+      ],
+      "link": "https://github.com/deka1105/GoHireSelenium",
+      "thumb": "assets/thumbs/gohire-automation.svg"
+    },
+    {
+      "num": "13",
+      "name": "Cold Email Automation",
+      "tag": "Automation",
+      "thumbLabel": "cold outreach tool",
+      "desc": "A Python automation suite that streamlines sending, personalizing and tracking cold outreach emails at scale.",
+      "stack": [
+        "Python",
+        "Automation"
+      ],
+      "link": "https://github.com/deka1105/ColdEmails",
+      "thumb": "assets/thumbs/cold-email-automation.svg"
+    },
+    {
+      "num": "14",
+      "name": "GitHub Auto-Push Analytics",
+      "tag": "Tool",
+      "thumbLabel": "commit analytics",
+      "desc": "A dashboard that visualizes commit and auto-push activity across repositories, turning raw git history into readable analytics.",
+      "stack": [
+        "JavaScript",
+        "Git",
+        "Data Viz"
+      ],
+      "link": "https://github.com/deka1105/GitHub-AutoPush-Analytics",
+      "thumb": "assets/thumbs/autopush-analytics.svg"
+    },
+    {
+      "num": "15",
+      "name": "Instagram Scraper Bot",
+      "tag": "Automation",
+      "thumbLabel": "instagram scraper",
+      "desc": "An automation bot that scrapes public Instagram content and metadata for downstream collection and analysis.",
+      "stack": [
+        "Python",
+        "Selenium",
+        "Automation"
+      ],
+      "link": "https://github.com/deka1105/Instagram-Scraper-Bot",
+      "thumb": "assets/thumbs/instagram-scraper.svg"
+    },
+    {
+      "num": "16",
+      "name": "Coursera Scrub",
+      "tag": "Automation",
+      "thumbLabel": "course automation",
+      "desc": "A script that automates repetitive Coursera course tasks to speed up completion of routine coursework.",
+      "stack": [
+        "Python",
+        "Automation"
+      ],
+      "link": "https://github.com/deka1105/CourseraScrub",
+      "thumb": "assets/thumbs/coursera-scrub.svg"
+    },
+    {
+      "num": "17",
+      "name": "LinkedIn Connection Bot",
+      "tag": "Automation",
+      "thumbLabel": "networking bot",
+      "desc": "An automation tool that helps build more relevant LinkedIn connections by targeting and personalizing outreach.",
+      "stack": [
+        "JavaScript",
+        "Automation"
+      ],
+      "link": "https://github.com/deka1105/LinkedInBot",
+      "thumb": "assets/thumbs/linkedin-bot.svg"
+    },
+    {
+      "num": "18",
+      "name": "Excel Beauty",
+      "tag": "Tool",
+      "thumbLabel": "excel formatter",
+      "desc": "A Python utility that auto-formats and beautifies Excel workbooks — consistent styling, layout and formatting applied programmatically.",
+      "stack": [
+        "Python",
+        "openpyxl"
+      ],
+      "link": "https://github.com/deka1105/ExcelBeauty",
+      "thumb": "assets/thumbs/excel-beauty.svg"
+    },
+    {
+      "num": "19",
+      "name": "Flask + Plotly Dashboards",
+      "tag": "Data Viz",
+      "thumbLabel": "flask dashboards",
+      "desc": "Interactive data dashboards built with Flask and Plotly for serving live, chart-driven views from Python backends.",
+      "stack": [
+        "Python",
+        "Flask",
+        "Plotly"
+      ],
+      "link": "https://github.com/deka1105/FlaskPlotly",
+      "thumb": "assets/thumbs/flask-plotly.svg"
+    },
+    {
+      "num": "20",
+      "name": "Wordle Game",
+      "tag": "Game",
+      "thumbLabel": "word game",
+      "desc": "A web-based clone of Wordle — guess a five-letter word in six tries with color-coded feedback on every guess.",
+      "stack": [
+        "Python"
+      ],
+      "link": "https://github.com/deka1105/Wordle-Game",
+      "thumb": "assets/thumbs/wordle-game.svg"
+    },
+    {
+      "num": "21",
+      "name": "Playbooks",
+      "tag": "Scripts",
+      "thumbLabel": "automation scripts",
+      "desc": "A growing collection of small day-to-day automation scripts and utilities built to remove repetitive manual work.",
+      "stack": [
+        "Python",
+        "Automation"
+      ],
+      "link": "https://github.com/deka1105/Playbooks",
+      "thumb": "assets/thumbs/playbooks.svg"
+    },
+    {
+      "num": "22",
+      "name": "SessionForge AI Session Manager",
+      "tag": "AI Tool",
+      "thumbLabel": "multi-account AI dashboard",
+      "desc": "A multi-account, multi-provider AI session manager — chat with ChatGPT, Claude and Gemini from a single dashboard, with each session keeping its own isolated login. Built on a FastAPI + Playwright backend driving real browser sessions.",
+      "stack": [
+        "Python",
+        "FastAPI",
+        "Playwright"
+      ],
+      "link": "#",
+      "thumb": "assets/thumbs/sessionforge-ai.svg"
+    },
+    {
+      "num": "23",
+      "name": "RepoHerald",
+      "tag": "Web",
+      "thumbLabel": "repo discovery portal",
+      "desc": "A portal where people and companies post GitHub repos for discovery and starring, powered by a verified-star credit economy — earned credits mint self-highlights or donated highlights, with sponsored repos getting pinned feed placement and an admin portal for moderation.",
+      "stack": [
+        "Next.js",
+        "TypeScript",
+        "Drizzle",
+        "Postgres"
+      ],
+      "link": "#",
+      "thumb": "assets/thumbs/repoherald.svg"
+    },
+    {
+      "num": "24",
+      "name": "Warehouse Workflow Mapper",
+      "tag": "Tool",
+      "thumbLabel": "workflow builder",
+      "desc": "An interactive web app for designing, visualizing and animating custom warehouse workflows — drag-and-drop nodes, directional edges and real-time package-flow animation, with workflows persisted as CSV for easy sharing.",
+      "stack": [
+        "Flask",
+        "JavaScript"
+      ],
+      "link": "#",
+      "thumb": "assets/thumbs/warehouse-workflow.svg"
+    },
+    {
+      "num": "25",
+      "name": "HabitFarmer",
+      "tag": "Mobile App",
+      "thumbLabel": "habit tracker farm",
+      "desc": "A habit tracker where each habit is a plant on your farm — daily check-ins water your plants through 8 growth stages across 10 varieties, and neglected habits wilt until you return.",
+      "stack": [
+        "SwiftUI",
+        "Next.js",
+        "TypeScript"
+      ],
+      "link": "#",
+      "thumb": "assets/thumbs/habitfarmer.svg"
+    }
+  ],
+  "blog": [],
+  "contact": {
+    "sectionLabel": "Let's Build Together",
+    "title": "Got a project in mind?",
+    "titleAccent": "in mind?",
+    "desc": "Whether it's a data product, an ML pipeline, a collaboration, or just a conversation — I'm always open to interesting work.",
+    "ctaText": "Say Hello →",
+    "email": "shubhamdekatey@gmail.com"
+  },
+  "footer": {
+    "name": "SD.Folio",
+    "copy": "© 2026 Shubham A. D. — Built with precision",
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/deka1105"
+      },
+      {
+        "label": "LinkedIn",
+        "href": "https://www.linkedin.com/in/shubham-dekatey"
+      },
+      {
+        "label": "Portfolio",
+        "href": "https://sdfolio.com"
+      },
+      {
+        "label": "Email",
+        "href": "mailto:shubhamdekatey@gmail.com"
+      }
+    ]
+  },
+  "tweaks": {
+    "accentColor": "#ff6a00",
+    "globeSpeed": 0.4,
+    "cardTilt": true,
+    "particleTrail": true,
+    "frameRate": 60,
+    "pixelCap": 1.5,
+    "satCount": 13,
+    "starCount": 450,
+    "nebula": true,
+    "scrollLength": 250
+  }
+}

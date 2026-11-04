@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover" />
+  <!-- Content source: GitHub-hosted portfolio-data.json (falls back to local file if unreachable) -->
+  <script>window.PORTFOLIO_DATA_URL = 'https://raw.githubusercontent.com/deka1105/globeProducts/main/portfolio-data.json';</script>
+  <title>Portfolio JSON Updater</title>
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── TOKENS ── */
+    :root {
+      --bg:       #07080d;
+      --bg2:      #0c0d16;
+      --bg3:      #11121e;
+      --bg4:      #171829;
+      --fg:       #f0f0f5;
+      --fg2:      #9090a8;
+      --fg3:      #55556a;
+      --gold:     #ff6a00;
+      --gold-dim: rgba(255,106,0,0.12);
+      --gold-glow:rgba(255,106,0,0.32);
+      --green:    #4ade80;
+      --red:      #f87171;
+      --border:   rgba(255,255,255,0.07);
+      --border-hi:rgba(255,106,0,0.3);
+      --card:     rgba(14,15,26,0.75);
+      --radius:   14px;
+      --radius-sm:8px;
+      --font-ui:  'DM Sans', sans-serif;
+      --font-disp:'Syne', sans-serif;
+      --font-mono:'Fira Code', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--fg);
+      font-family: var(--font-ui); font-size: 14px;
+      line-height: 1.6; min-height: 100vh; overflow-x: hidden;
+    }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,106,0,0.25); border-radius: 4px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--bg3); border: 1px solid var(--border-hi); color: var(--fg);
+      padding: 10px 20px; border-radius: 999px; font-size: 0.82rem; font-weight: 500;
+      z-index: 9999; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.success { border-color: rgba(74,222,128,0.4); }
+    #toast.error   { border-color: rgba(248,113,113,0.4); }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(7,8,13,0.88);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex; align-items: center; gap: 12px; height: 56px;
+    }
+    .topbar-logo { display: flex; align-items: center; margin-right: 8px; }
+    .topbar-logo img { height: 24px; width: auto; display: block; }
+    .topbar-sep { width: 1px; height: 20px; background: var(--border); }
+    .topbar-label {
+      font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--fg3); font-family: var(--font-disp); font-weight: 600;
+    }
+    .topbar-spacer { flex: 1; }
+
+    /* file input hidden, triggered by button */
+    #file-input { display: none; }
+
+    .tb-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 7px 14px; border-radius: var(--radius-sm);
+      font-family: var(--font-ui); font-size: 0.78rem; font-weight: 500;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s;
+      border: 1px solid var(--border); background: var(--bg3); color: var(--fg2);
+      white-space: nowrap;
+    }
+    .tb-btn:hover { border-color: var(--border-hi); color: var(--fg); background: var(--bg4); }
+    .tb-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .tb-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    .tb-btn.primary {
+      background: var(--gold); color: #07080d;
+      border-color: var(--gold); font-weight: 700;
+    }
+    .tb-btn.primary:hover { background: #ff8533; border-color: #ff8533; }
+
+    /* status dot */
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+      background: var(--green); box-shadow: 0 0 0 3px rgba(74,222,128,0.15);
+    }
+    .status-dot.dirty { background: var(--gold); box-shadow: 0 0 0 3px rgba(255,106,0,0.15); }
+    #status-text { font-size: 0.72rem; color: var(--fg3); font-family: var(--font-mono); }
+
+    /* ── LAYOUT ── */
+    .app-layout {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) minmax(0,420px);
+      gap: 0;
+      height: calc(100vh - 56px);
+    }
+    .form-pane {
+      overflow-y: auto; padding: 20px 20px 48px;
+      border-right: 1px solid var(--border);
+    }
+    .preview-pane {
+      overflow-y: auto; display: flex; flex-direction: column;
+      background: var(--bg2);
+    }
+    .preview-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--fg3); font-family: var(--font-disp); font-weight: 600;
+      flex-shrink: 0;
+    }
+    .preview-header .line-count { color: var(--fg3); font-family: var(--font-mono); font-size: 0.68rem; text-transform: none; letter-spacing: 0; }
+    #json-preview {
+      flex: 1; padding: 16px 18px;
+      font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.7;
+      white-space: pre; overflow: auto;
+      color: var(--fg2);
+      border: none; outline: none; resize: none;
+      background: transparent; width: 100%;
+    }
+
+    /* JSON syntax highlight */
+    .j-key    { color: #79b8ff; }
+    .j-str    { color: #9ecbff; }
+    .j-num    { color: #f8c555; }
+    .j-bool   { color: #f97583; }
+    .j-null   { color: var(--fg3); }
+    .j-punct  { color: var(--fg3); }
+
+    /* ── ACCORDION ── */
+    .accordion { display: flex; flex-direction: column; gap: 10px; }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      transition: border-color 0.2s;
+    }
+    .panel:focus-within { border-color: var(--border-hi); }
+
+    .panel-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 16px; cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .panel-header:hover { background: rgba(255,255,255,0.025); }
+    .panel-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: var(--gold-dim); border: 1px solid rgba(255,106,0,0.18);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .panel-icon svg { width: 14px; height: 14px; color: var(--gold); }
+    .panel-title {
+      font-family: var(--font-disp); font-weight: 700; font-size: 0.88rem;
+      color: var(--fg); flex: 1; letter-spacing: -0.01em;
+    }
+    .panel-badge {
+      font-size: 0.65rem; padding: 2px 7px; border-radius: 4px;
+      background: var(--gold-dim); color: var(--gold);
+      font-family: var(--font-mono); letter-spacing: 0.06em;
+    }
+    .panel-chevron {
+      width: 18px; height: 18px; color: var(--fg3);
+      transition: transform 0.2s cubic-bezier(0.23,1,0.32,1);
+      flex-shrink: 0;
+    }
+    .panel.open .panel-chevron { transform: rotate(180deg); }
+
+    .panel-body {
+      display: grid; grid-template-rows: 0fr;
+      transition: grid-template-rows 0.25s cubic-bezier(0.23,1,0.32,1);
+    }
+    .panel.open .panel-body { grid-template-rows: 1fr; }
+    .panel-body-inner {
+      overflow: hidden;
+      border-top: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .panel.open .panel-body-inner {
+      border-top-color: var(--border);
+      padding: 16px;
+    }
+
+    /* ── FORM ELEMENTS ── */
+    .field-group {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .field-group.single { grid-template-columns: 1fr; }
+    .field-group.triple { grid-template-columns: 1fr 1fr 1fr; }
+
+    .field {
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    label {
+      font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--fg3); font-weight: 500; font-family: var(--font-disp);
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="url"],
+    input[type="number"],
+    input[type="color"],
+    textarea,
+    select {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--fg);
+      font-family: var(--font-ui); font-size: 0.85rem; padding: 8px 11px;
+      outline: none; width: 100%;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px var(--gold-dim);
+    }
+    textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
+    input[type="color"] {
+      padding: 3px 6px; height: 36px; cursor: pointer;
+    }
+    input[type="range"] {
+      accent-color: var(--gold); width: 100%; cursor: pointer;
+    }
+    input[type="checkbox"] {
+      accent-color: var(--gold); width: 15px; height: 15px; cursor: pointer;
+    }
+    .range-row { display: flex; align-items: center; gap: 10px; }
+    .range-row input[type="range"] { flex: 1; }
+    .range-val {
+      font-family: var(--font-mono); font-size: 0.78rem; color: var(--gold);
+      min-width: 36px; text-align: right;
+    }
+    .check-row {
+      display: flex; align-items: center; gap: 8px; padding: 4px 0;
+      cursor: pointer;
+    }
+    .check-row label {
+      font-size: 0.82rem; text-transform: none; letter-spacing: 0;
+      color: var(--fg2); cursor: pointer; font-family: var(--font-ui);
+    }
+
+    /* section divider inside panel */
+    .field-section {
+      font-size: 0.65rem; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--gold); font-family: var(--font-disp); font-weight: 700;
+      padding: 12px 0 6px; display: flex; align-items: center; gap: 8px;
+    }
+    .field-section::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(to right, rgba(255,106,0,0.2), transparent);
+    }
+
+    /* ── ARRAY ITEMS ── */
+    .array-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .array-item {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); overflow: hidden;
+    }
+    .array-item-header {
+      display: flex; align-items: center; padding: 8px 12px;
+      cursor: pointer; user-select: none; gap: 8px;
+      transition: background 0.15s;
+    }
+    .array-item-header:hover { background: rgba(255,255,255,0.03); }
+    .array-item-num {
+      font-family: var(--font-mono); font-size: 0.68rem; color: var(--fg3);
+      min-width: 20px;
+    }
+    .array-item-title {
+      flex: 1; font-size: 0.82rem; color: var(--fg2);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .array-item-del {
+      width: 22px; height: 22px; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; border: none; color: var(--fg3);
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .array-item-del:hover { background: rgba(248,113,113,0.12); color: var(--red); }
+    .array-item-del svg { width: 12px; height: 12px; }
+    .array-item-body {
+      display: grid; grid-template-rows: 0fr;
+      transition: grid-template-rows 0.2s ease;
+    }
+    .array-item.open .array-item-body { grid-template-rows: 1fr; }
+    .array-item-inner {
+      overflow: hidden;
+      border-top: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .array-item.open .array-item-inner {
+      border-top-color: var(--border);
+      padding: 12px;
+    }
+    .array-item-chevron {
+      width: 14px; height: 14px; color: var(--fg3);
+      transition: transform 0.2s; flex-shrink: 0;
+    }
+    .array-item.open .array-item-chevron { transform: rotate(180deg); }
+
+    .add-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 13px; border-radius: var(--radius-sm);
+      background: rgba(255,106,0,0.08); border: 1px dashed rgba(255,106,0,0.3);
+      color: var(--gold); font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s;
+      font-family: var(--font-ui);
+    }
+    .add-btn:hover { background: rgba(255,106,0,0.14); border-color: var(--gold); }
+    .add-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .add-btn svg { width: 13px; height: 13px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .app-layout { grid-template-columns: 1fr; height: auto; }
+      .form-pane { border-right: none; border-bottom: 1px solid var(--border); max-height: 70vh; }
+      .preview-pane { height: 50vh; }
+      .topbar-label { display: none; }
+      .topbar-sep:first-of-type { display: none; }
+    }
+    @media (max-width: 600px) {
+      .topbar { padding: 0 12px; gap: 8px; }
+      .tb-btn span { display: none; }
+      .tb-btn { padding: 7px 10px; }
+      .form-pane { padding: 12px 12px 40px; }
+      .field-group { grid-template-columns: 1fr; }
+      .field-group.triple { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="topbar-logo"><img src="logo-dark.png" alt="SD.Folio" /></div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-label">JSON Updater</div>
+  <div class="topbar-spacer"></div>
+
+  <div class="status-dot" id="status-dot"></div>
+  <span id="status-text">loaded</span>
+
+  <div class="topbar-sep"></div>
+
+  <input type="file" id="file-input" accept=".json,application/json" aria-label="Load JSON file" />
+  <button class="tb-btn" onclick="document.getElementById('file-input').click()" aria-label="Load from file">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5 5 5M12 5v11"/></svg>
+    <span>Load file</span>
+  </button>
+  <button class="tb-btn" onclick="copyJSON()" aria-label="Copy JSON to clipboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+    <span>Copy</span>
+  </button>
+  <button class="tb-btn primary" onclick="downloadJSON()" aria-label="Download portfolio-data.json">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 5v10"/></svg>
+    <span>Download</span>
+  </button>
+</header>
+
+<!-- MAIN LAYOUT -->
+<div class="app-layout">
+
+  <!-- FORM PANE -->
+  <div class="form-pane" id="form-pane">
+    <div class="accordion" id="accordion"></div>
+  </div>
+
+  <!-- PREVIEW PANE -->
+  <div class="preview-pane">
+    <div class="preview-header">
+      <span>portfolio-data.json</span>
+      <span class="line-count" id="line-count">0 lines</span>
+    </div>
+    <div id="json-preview" role="region" aria-label="JSON preview" aria-live="polite"></div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+let DATA = {};
+let dirty = false;
+
+const DEFAULT_DATA = {
+  identity: { name: "Shubham A. D.", role: "Builder", shortName: "SD.Folio", accentColor: "#ff6a00" },
+  nav: { links: [
+    { label: "Home",    href: "#hero" },
+    { label: "About",   href: "#about" },
+    { label: "Work",    href: "#projects" },
+    { label: "Blog",    href: "#blog" },
+    { label: "Contact", href: "#contact" }
+  ]},
+  hero: {
+    label: "Shubham A. D. — Builder",
+    title: ["Crafting", "Digital Products", "That Matter"],
+    titleAccent: "Products",
+    subtitle: "Software engineer building tech products, apps and tools that solve real problems — with code, craft, and attention to detail.",
+    ctaPrimary:   { text: "See Work",     href: "#projects" },
+    ctaSecondary: { text: "Get in Touch", href: "#contact" }
+  },
+  stats: [
+    { number: "12", suffix: "+", label: "Projects Shipped" },
+    { number: "5",  suffix: "y", label: "Experience" },
+    { number: "8",  suffix: "+", label: "Technologies" },
+    { number: "∞",  suffix: "",  label: "Ideas Building" }
+  ],
+  projects: [
+    { num: "01 — Featured", name: "SaaS Dashboard Platform", tag: "Featured", thumbLabel: "product screenshot / demo video", desc: "A full-stack analytics platform with real-time data visualization, multi-tenant architecture, and blazing-fast React frontend.", stack: ["React","Node.js","PostgreSQL","Redis"], featured: true, link: "#" },
+    { num: "02", name: "CLI Dev Tool", tag: "App", thumbLabel: "terminal screenshot", desc: "A cross-platform developer utility that automates repetitive setup tasks.", stack: ["TypeScript","Node.js","CLI"], link: "#" },
+    { num: "03", name: "AI Writing Assistant", tag: "Tool", thumbLabel: "tool interface", desc: "An LLM-powered writing companion with context memory and custom tone presets.", stack: ["Python","OpenAI","FastAPI"], link: "#" },
+    { num: "04", name: "E-Commerce Engine", tag: "Web", thumbLabel: "storefront screenshot", desc: "A headless commerce solution with custom storefront and checkout optimization.", stack: ["Next.js","Stripe","Prisma"], link: "#" },
+    { num: "05", name: "Focus Timer App", tag: "Mobile", thumbLabel: "app interface", desc: "A minimalist productivity app with deep work sessions and Pomodoro tracking.", stack: ["React Native","Expo"], link: "#" }
+  ],
+  blog: [
+    { date: "Apr 2026", readTime: "5 min read", title: "Why Every Developer Should Ship a SaaS in 30 Days", excerpt: "The constraints of a deadline unlock creativity. Here's what I learned from shipping fast.", link: "#" },
+    { date: "Mar 2026", readTime: "8 min read", title: "Building CLI Tools That Developers Actually Want to Use", excerpt: "Great developer tools feel invisible. Here's my framework for getting it right.", link: "#" },
+    { date: "Feb 2026", readTime: "6 min read", title: "The Stack I Reach For on Every New Project in 2026", excerpt: "After years of trying everything, here's the opinionated tech stack I default to.", link: "#" }
+  ],
+  contact: { sectionLabel: "Let's Build Together", title: "Got a project in mind?", titleAccent: "in mind?", desc: "Whether it's a product idea, a collaboration, or just a conversation — I'm always open to interesting work.", ctaText: "Say Hello →", email: "hello@shubhamad.dev" },
+  footer: { name: "SD.Folio", copy: "© 2026 — Built with precision", links: [
+    { label: "GitHub",  href: "https://github.com" },
+    { label: "Twitter", href: "https://twitter.com" },
+    { label: "LinkedIn",href: "https://linkedin.com" }
+  ]},
+  tweaks: { accentColor: "#ff6a00", globeSpeed: 0.4, cardTilt: true, particleTrail: true, frameRate: 60, pixelCap: 1.5, satCount: 13, starCount: 450, nebula: true, scrollLength: 250 }
+};
+
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ''; }, 2200);
+}
+
+/* ═══════════════════════════════════════════════
+   STATUS
+═══════════════════════════════════════════════ */
+function setStatus(msg, isDirty = false) {
+  document.getElementById('status-text').textContent = msg;
+  document.getElementById('status-dot').className = 'status-dot' + (isDirty ? ' dirty' : '');
+  dirty = isDirty;
+}
+
+/* ═══════════════════════════════════════════════
+   JSON PREVIEW — SYNTAX HIGHLIGHT
+═══════════════════════════════════════════════ */
+function highlight(json) {
+  return json
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?|[{}\[\],:])/g,
+      m => {
+        if (/^"/.test(m)) {
+          if (/:$/.test(m)) return `<span class="j-key">${m}</span>`;
+          return `<span class="j-str">${m}</span>`;
+        }
+        if (/true|false/.test(m)) return `<span class="j-bool">${m}</span>`;
+        if (/null/.test(m))       return `<span class="j-null">${m}</span>`;
+        if (/^[\d\-]/.test(m))    return `<span class="j-num">${m}</span>`;
+        return `<span class="j-punct">${m}</span>`;
+      }
+    );
+}
+
+function updatePreview() {
+  const json = JSON.stringify(DATA, null, 2);
+  const lines = json.split('\n').length;
+  document.getElementById('json-preview').innerHTML = highlight(json);
+  document.getElementById('line-count').textContent = lines + ' lines';
+}
+
+/* ═══════════════════════════════════════════════
+   COPY / DOWNLOAD
+═══════════════════════════════════════════════ */
+function copyJSON() {
+  navigator.clipboard.writeText(JSON.stringify(DATA, null, 2))
+    .then(() => showToast('Copied to clipboard', 'success'))
+    .catch(() => showToast('Copy failed', 'error'));
+}
+
+function downloadJSON() {
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'portfolio-data.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  setStatus('saved', false);
+  showToast('portfolio-data.json downloaded', 'success');
+}
+
+/* ═══════════════════════════════════════════════
+   FILE LOAD
+═══════════════════════════════════════════════ */
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      DATA = JSON.parse(ev.target.result);
+      buildForm();
+      updatePreview();
+      setStatus('file loaded', false);
+      showToast('Loaded ' + file.name, 'success');
+    } catch {
+      showToast('Invalid JSON file', 'error');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* ═══════════════════════════════════════════════
+   CHANGE TRACKING
+═══════════════════════════════════════════════ */
+function onChange() {
+  updatePreview();
+  setStatus('unsaved changes', true);
+}
+
+/* ═══════════════════════════════════════════════
+   DOM HELPERS
+═══════════════════════════════════════════════ */
+function el(tag, cls, html) {
+  const e = document.createElement(tag);
+  if (cls)  e.className = cls;
+  if (html) e.innerHTML = html;
+  return e;
+}
+
+function svgIcon(path, viewBox = '0 0 24 24') {
+  return `<svg viewBox="${viewBox}" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${path}</svg>`;
+}
+
+const ICONS = {
+  identity: '<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>',
+  nav:      '<path d="M3 6h18M3 12h18M3 18h18"/>',
+  hero:     '<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',
+  stats:    '<path d="M18 20V10M12 20V4M6 20v-6"/>',
+  projects: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  blog:     '<path d="M4 6h16M4 10h16M4 14h10"/>',
+  contact:  '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+  footer:   '<rect x="2" y="17" width="20" height="5" rx="1"/><path d="M2 7h20M7 12h10"/>',
+  tweaks:   '<circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>',
+  chevron:  '<polyline points="6 9 12 15 18 9"/>',
+  plus:     '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  trash:    '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/>',
+  chevron_s:'<polyline points="5 8 12 14 19 8"/>',
+};
+
+function makeField(labelText, inputEl, id) {
+  const wrap = el('div', 'field');
+  const lbl = document.createElement('label');
+  lbl.setAttribute('for', id);
+  lbl.textContent = labelText;
+  wrap.appendChild(lbl);
+  wrap.appendChild(inputEl);
+  return wrap;
+}
+
+function input(type, val, id, ph) {
+  const i = document.createElement('input');
+  i.type = type || 'text';
+  i.value = val != null ? val : '';
+  i.id = id || '';
+  if (ph) i.placeholder = ph;
+  return i;
+}
+
+function textarea(val, id, ph) {
+  const t = document.createElement('textarea');
+  t.value = val != null ? val : '';
+  t.id = id || '';
+  if (ph) t.placeholder = ph;
+  return t;
+}
+
+/* ═══════════════════════════════════════════════
+   ACCORDION PANEL BUILDER
+═══════════════════════════════════════════════ */
+function makePanel(key, title, iconPath, badge, buildFn) {
+  const panel = el('div', 'panel');
+  panel.id = 'panel-' + key;
+
+  const hdr = el('div', 'panel-header');
+  hdr.setAttribute('role', 'button');
+  hdr.setAttribute('tabindex', '0');
+  hdr.setAttribute('aria-expanded', 'false');
+  hdr.setAttribute('aria-controls', 'panel-body-' + key);
+  hdr.innerHTML =
+    `<div class="panel-icon">${svgIcon(iconPath)}</div>` +
+    `<span class="panel-title">${title}</span>` +
+    (badge ? `<span class="panel-badge">${badge}</span>` : '') +
+    `<span class="panel-chevron">${svgIcon(ICONS.chevron)}</span>`;
+
+  const body    = el('div', 'panel-body');
+  body.id = 'panel-body-' + key;
+  body.setAttribute('role', 'region');
+  const inner   = el('div', 'panel-body-inner');
+  body.appendChild(inner);
+  panel.appendChild(hdr);
+  panel.appendChild(body);
+
+  function toggle() {
+    const open = panel.classList.toggle('open');
+    hdr.setAttribute('aria-expanded', open);
+    if (open && !inner.dataset.built) {
+      buildFn(inner);
+      inner.dataset.built = '1';
+    }
+  }
+  hdr.addEventListener('click', toggle);
+  hdr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+
+  return panel;
+}
+
+/* ═══════════════════════════════════════════════
+   ARRAY ITEM WRAPPER
+═══════════════════════════════════════════════ */
+function makeArrayItem(index, labelText, buildFn, onDelete) {
+  const item = el('div', 'array-item');
+
+  const hdr = el('div', 'array-item-header');
+  hdr.setAttribute('role', 'button'); hdr.setAttribute('tabindex', '0');
+  hdr.innerHTML =
+    `<span class="array-item-num">${String(index+1).padStart(2,'0')}</span>` +
+    `<span class="array-item-title">${labelText}</span>` +
+    `<span class="array-item-chevron">${svgIcon(ICONS.chevron_s, '0 0 24 24')}</span>` +
+    `<button class="array-item-del" title="Remove" aria-label="Remove item">${svgIcon(ICONS.trash)}</button>`;
+
+  const del = hdr.querySelector('.array-item-del');
+  del.addEventListener('click', e => { e.stopPropagation(); onDelete(); });
+
+  const body  = el('div', 'array-item-body');
+  const inner = el('div', 'array-item-inner');
+  body.appendChild(inner);
+  item.appendChild(hdr);
+  item.appendChild(body);
+
+  function toggle() { item.classList.toggle('open'); }
+  hdr.addEventListener('click', e => { if (e.target !== del && !del.contains(e.target)) toggle(); });
+  hdr.addEventListener('keydown', e => { if ((e.key==='Enter'||e.key===' ')&&e.target===hdr){e.preventDefault();toggle();} });
+
+  buildFn(inner);
+  item.classList.add('open'); // start open
+  return item;
+}
+
+/* ═══════════════════════════════════════════════
+   SECTION BUILDERS
+═══════════════════════════════════════════════ */
+
+/* IDENTITY */
+function buildIdentity(wrap) {
+  const d = DATA.identity = DATA.identity || {};
+  const g = el('div', 'field-group');
+  const iName   = input('text', d.name,       'id-name',   'Shubham A. D.');
+  const iRole   = input('text', d.role,       'id-role',   'Builder');
+  const iShort  = input('text', d.shortName,  'id-short',  'SD.Folio');
+  const iAccent = input('color', d.accentColor||'#ff6a00', 'id-accent');
+
+  iName.addEventListener('input',   () => { d.name       = iName.value;   onChange(); });
+  iRole.addEventListener('input',   () => { d.role       = iRole.value;   onChange(); });
+  iShort.addEventListener('input',  () => { d.shortName  = iShort.value;  onChange(); });
+  iAccent.addEventListener('input', () => { d.accentColor= iAccent.value; onChange(); });
+
+  g.appendChild(makeField('Full Name', iName,   'id-name'));
+  g.appendChild(makeField('Role',      iRole,   'id-role'));
+  g.appendChild(makeField('Short Name / Logo', iShort, 'id-short'));
+  g.appendChild(makeField('Accent Colour',     iAccent,'id-accent'));
+  wrap.appendChild(g);
+}
+
+/* NAV */
+function buildNav(wrap) {
+  DATA.nav = DATA.nav || {};
+  DATA.nav.links = DATA.nav.links || [];
+
+  const list = el('div', 'array-list');
+  wrap.appendChild(list);
+
+  function renderLinks() {
+    list.innerHTML = '';
+    DATA.nav.links.forEach((lnk, i) => {
+      const item = makeArrayItem(i, lnk.label || 'Link '+i,
+        inner => {
+          const g = el('div', 'field-group');
+          const iLabel = input('text', lnk.label, '', 'Label');
+          const iHref  = input('text', lnk.href,  '', '#section');
+          iLabel.addEventListener('input', () => { lnk.label = iLabel.value; refreshTitle(item, lnk.label); onChange(); });
+          iHref.addEventListener('input',  () => { lnk.href  = iHref.value;  onChange(); });
+          g.appendChild(makeField('Label', iLabel, ''));
+          g.appendChild(makeField('href',  iHref,  ''));
+          inner.appendChild(g);
+        },
+        () => { DATA.nav.links.splice(i, 1); renderLinks(); onChange(); }
+      );
+      list.appendChild(item);
+    });
+  }
+
+  renderLinks();
+
+  const addBtn = el('button', 'add-btn');
+  addBtn.innerHTML = svgIcon(ICONS.plus) + ' Add Link';
+  addBtn.addEventListener('click', () => {
+    DATA.nav.links.push({ label: 'New Link', href: '#' });
+    renderLinks(); onChange();
+  });
+  wrap.appendChild(addBtn);
+}
+
+/* HERO */
+function buildHero(wrap) {
+  const d = DATA.hero = DATA.hero || {};
+  d.ctaPrimary   = d.ctaPrimary   || {};
+  d.ctaSecondary = d.ctaSecondary || {};
+  if (!Array.isArray(d.title)) d.title = ['','',''];
+
+  const g1 = el('div', 'field-group single');
+  const iLabel = input('text', d.label, '', 'e.g. Shubham A. D. — Builder');
+  iLabel.addEventListener('input', () => { d.label = iLabel.value; onChange(); });
+  g1.appendChild(makeField('Hero Label', iLabel, ''));
+  wrap.appendChild(g1);
+
+  const divT = el('div', 'field-section'); divT.textContent = 'Title Lines';
+  wrap.appendChild(divT);
+
+  const g2 = el('div', 'field-group single');
+  ['Line 1','Line 2','Line 3'].forEach((lbl,i) => {
+    const inp = input('text', d.title[i]||'', '', lbl);
+    inp.addEventListener('input', () => { d.title[i] = inp.value; onChange(); });
+    g2.appendChild(makeField(lbl, inp, ''));
+  });
+  const iAccent = input('text', d.titleAccent, '', 'word to highlight');
+  iAccent.addEventListener('input', () => { d.titleAccent = iAccent.value; onChange(); });
+  g2.appendChild(makeField('Accent Word', iAccent, ''));
+  wrap.appendChild(g2);
+
+  const divS = el('div', 'field-section'); divS.textContent = 'Subtitle';
+  wrap.appendChild(divS);
+
+  const g3 = el('div', 'field-group single');
+  const tSub = textarea(d.subtitle, '', 'Subtitle text…');
+  tSub.addEventListener('input', () => { d.subtitle = tSub.value; onChange(); });
+  g3.appendChild(makeField('Subtitle', tSub, ''));
+  wrap.appendChild(g3);
+
+  const divC = el('div', 'field-section'); divC.textContent = 'CTAs';
+  wrap.appendChild(divC);
+
+  const g4 = el('div', 'field-group');
+  const iP_text = input('text', d.ctaPrimary.text,   '', 'Button text');
+  const iP_href = input('text', d.ctaPrimary.href,   '', '#section');
+  const iS_text = input('text', d.ctaSecondary.text, '', 'Button text');
+  const iS_href = input('text', d.ctaSecondary.href, '', '#section');
+  iP_text.addEventListener('input', () => { d.ctaPrimary.text   = iP_text.value; onChange(); });
+  iP_href.addEventListener('input', () => { d.ctaPrimary.href   = iP_href.value; onChange(); });
+  iS_text.addEventListener('input', () => { d.ctaSecondary.text = iS_text.value; onChange(); });
+  iS_href.addEventListener('input', () => { d.ctaSecondary.href = iS_href.value; onChange(); });
+  g4.appendChild(makeField('Primary CTA Text', iP_text, ''));
+  g4.appendChild(makeField('Primary CTA Link', iP_href, ''));
+  g4.appendChild(makeField('Secondary CTA Text', iS_text, ''));
+  g4.appendChild(makeField('Secondary CTA Link', iS_href, ''));
+  wrap.appendChild(g4);
+}
+
+/* STATS */
+function buildStats(wrap) {
+  DATA.stats = DATA.stats || [];
+  const list = el('div', 'array-list');
+  wrap.appendChild(list);
+
+  function renderStats() {
+    list.innerHTML = '';
+    DATA.stats.forEach((st, i) => {
+      const item = makeArrayItem(i, (st.number||'')+(st.suffix||'')+' — '+(st.label||''),
+        inner => {
+          const g = el('div', 'field-group triple');
+          const iNum    = input('text', st.number, '', '12');
+          const iSuffix = input('text', st.suffix, '', '+');
+          const iLabel  = input('text', st.label,  '', 'Projects');
+          iNum.addEventListener('input',    () => { st.number = iNum.value;    refreshTitle(item,(iNum.value||'')+(iSuffix.value||'')+' — '+(iLabel.value||'')); onChange(); });
+          iSuffix.addEventListener('input', () => { st.suffix = iSuffix.value; onChange(); });
+          iLabel.addEventListener('input',  () => { st.label  = iLabel.value;  onChange(); });
+          g.appendChild(makeField('Number', iNum,    ''));
+          g.appendChild(makeField('Suffix', iSuffix, ''));
+          g.appendChild(makeField('Label',  iLabel,  ''));
+          inner.appendChild(g);
+        },
+        () => { DATA.stats.splice(i,1); renderStats(); onChange(); }
+      );
+      list.appendChild(item);
+    });
+  }
+
+  renderStats();
+
+  const addBtn = el('button', 'add-btn');
+  addBtn.innerHTML = svgIcon(ICONS.plus) + ' Add Stat';
+  addBtn.addEventListener('click', () => {
+    DATA.stats.push({ number: '0', suffix: '+', label: 'New Stat' });
+    renderStats(); onChange();
+  });
+  wrap.appendChild(addBtn);
+}
+
+/* PROJECTS */
+function buildProjects(wrap) {
+  DATA.projects = DATA.projects || [];
+  const list = el('div', 'array-list');
+  wrap.appendChild(list);
+
+  function renderProjects() {
+    list.innerHTML = '';
+    DATA.projects.forEach((p, i) => {
+      const item = makeArrayItem(i, p.name || 'Project '+i,
+        inner => {
+          const g1 = el('div', 'field-group');
+          const iNum   = input('text', p.num,        '', '01');
+          const iName  = input('text', p.name,       '', 'Project Name');
+          const iTag   = input('text', p.tag,        '', 'App');
+          const iThumb = input('text', p.thumbLabel, '', 'screenshot…');
+          const iLink  = input('url',  p.link,       '', 'https://…');
+          iNum.addEventListener('input',   () => { p.num        = iNum.value;   onChange(); });
+          iName.addEventListener('input',  () => { p.name       = iName.value;  refreshTitle(item, p.name); onChange(); });
+          iTag.addEventListener('input',   () => { p.tag        = iTag.value;   onChange(); });
+          iThumb.addEventListener('input', () => { p.thumbLabel = iThumb.value; onChange(); });
+          iLink.addEventListener('input',  () => { p.link       = iLink.value;  onChange(); });
+          g1.appendChild(makeField('Number',      iNum,   ''));
+          g1.appendChild(makeField('Name',        iName,  ''));
+          g1.appendChild(makeField('Tag',         iTag,   ''));
+          g1.appendChild(makeField('Thumb Label', iThumb, ''));
+          inner.appendChild(g1);
+
+          const g2 = el('div', 'field-group single');
+          const tDesc = textarea(p.desc, '', 'Description…');
+          tDesc.addEventListener('input', () => { p.desc = tDesc.value; onChange(); });
+          g2.appendChild(makeField('Description', tDesc, ''));
+          inner.appendChild(g2);
+
+          const g3 = el('div', 'field-group');
+          g3.appendChild(makeField('Link', iLink, ''));
+
+          const iStack = input('text', (p.stack||[]).join(', '), '', 'React, Node.js, …');
+          iStack.addEventListener('input', () => {
+            p.stack = iStack.value.split(',').map(s=>s.trim()).filter(Boolean);
+            onChange();
+          });
+          const stackF = makeField('Stack (comma-separated)', iStack, '');
+          g3.style.gridTemplateColumns = '1fr';
+          inner.appendChild(g3);
+          inner.appendChild(stackF);
+
+          const checkRow = el('div', 'check-row');
+          const chk = document.createElement('input');
+          chk.type = 'checkbox'; chk.checked = !!p.featured;
+          chk.addEventListener('change', () => { p.featured = chk.checked; onChange(); });
+          const chkLbl = document.createElement('label');
+          chkLbl.textContent = 'Featured (bento-full layout)';
+          checkRow.appendChild(chk);
+          checkRow.appendChild(chkLbl);
+          inner.appendChild(checkRow);
+        },
+        () => { DATA.projects.splice(i,1); renderProjects(); onChange(); }
+      );
+      list.appendChild(item);
+    });
+  }
+
+  renderProjects();
+
+  const addBtn = el('button', 'add-btn');
+  addBtn.innerHTML = svgIcon(ICONS.plus) + ' Add Project';
+  addBtn.addEventListener('click', () => {
+    DATA.projects.push({ num: String(DATA.projects.length+1).padStart(2,'0'), name: 'New Project', tag: 'Web', thumbLabel: '', desc: '', stack: [], link: '#' });
+    renderProjects(); onChange();
+  });
+  wrap.appendChild(addBtn);
+}
+
+/* BLOG */
+function buildBlog(wrap) {
+  DATA.blog = DATA.blog || [];
+  const list = el('div', 'array-list');
+  wrap.appendChild(list);
+
+  function renderBlog() {
+    list.innerHTML = '';
+    DATA.blog.forEach((b, i) => {
+      const item = makeArrayItem(i, b.title || 'Post '+i,
+        inner => {
+          const g1 = el('div', 'field-group');
+          const iDate = input('text', b.date,     '', 'Apr 2026');
+          const iTime = input('text', b.readTime, '', '5 min read');
+          const iLink = input('url',  b.link,     '', 'https://…');
+          iDate.addEventListener('input', () => { b.date     = iDate.value; onChange(); });
+          iTime.addEventListener('input', () => { b.readTime = iTime.value; onChange(); });
+          iLink.addEventListener('input', () => { b.link     = iLink.value; onChange(); });
+          g1.appendChild(makeField('Date',      iDate, ''));
+          g1.appendChild(makeField('Read Time', iTime, ''));
+          g1.appendChild(makeField('Link',      iLink, ''));
+          inner.appendChild(g1);
+
+          const g2 = el('div', 'field-group single');
+          const iTitle = input('text', b.title, '', 'Post title…');
+          iTitle.addEventListener('input', () => { b.title = iTitle.value; refreshTitle(item, b.title); onChange(); });
+          g2.appendChild(makeField('Title', iTitle, ''));
+
+          const tExcerpt = textarea(b.excerpt, '', 'Excerpt…');
+          tExcerpt.addEventListener('input', () => { b.excerpt = tExcerpt.value; onChange(); });
+          g2.appendChild(makeField('Excerpt', tExcerpt, ''));
+          inner.appendChild(g2);
+        },
+        () => { DATA.blog.splice(i,1); renderBlog(); onChange(); }
+      );
+      list.appendChild(item);
+    });
+  }
+
+  renderBlog();
+
+  const addBtn = el('button', 'add-btn');
+  addBtn.innerHTML = svgIcon(ICONS.plus) + ' Add Post';
+  addBtn.addEventListener('click', () => {
+    DATA.blog.push({ date: 'May 2026', readTime: '4 min read', title: 'New Post', excerpt: '', link: '#' });
+    renderBlog(); onChange();
+  });
+  wrap.appendChild(addBtn);
+}
+
+/* CONTACT */
+function buildContact(wrap) {
+  const d = DATA.contact = DATA.contact || {};
+  const g = el('div', 'field-group single');
+
+  const fields = [
+    ['Section Label', 'text',  d.sectionLabel, v => d.sectionLabel = v],
+    ['Title',         'text',  d.title,        v => d.title = v],
+    ['Title Accent',  'text',  d.titleAccent,  v => d.titleAccent = v],
+    ['CTA Text',      'text',  d.ctaText,      v => d.ctaText = v],
+    ['Email',         'email', d.email,        v => d.email = v],
+  ];
+  fields.forEach(([lbl, type, val, setter]) => {
+    const i = input(type, val, '', lbl);
+    i.addEventListener('input', () => { setter(i.value); onChange(); });
+    g.appendChild(makeField(lbl, i, ''));
+  });
+
+  const tDesc = textarea(d.desc, '', 'Description…');
+  tDesc.addEventListener('input', () => { d.desc = tDesc.value; onChange(); });
+  g.appendChild(makeField('Description', tDesc, ''));
+  wrap.appendChild(g);
+}
+
+/* FOOTER */
+function buildFooter(wrap) {
+  const d = DATA.footer = DATA.footer || {};
+  d.links = d.links || [];
+
+  const g1 = el('div', 'field-group');
+  const iName = input('text', d.name, '', 'SD.Folio');
+  const iCopy = input('text', d.copy, '', '© 2026 …');
+  iName.addEventListener('input', () => { d.name = iName.value; onChange(); });
+  iCopy.addEventListener('input', () => { d.copy = iCopy.value; onChange(); });
+  g1.appendChild(makeField('Name / Logo', iName, ''));
+  g1.appendChild(makeField('Copyright',   iCopy, ''));
+  wrap.appendChild(g1);
+
+  const div = el('div', 'field-section'); div.textContent = 'Links';
+  wrap.appendChild(div);
+
+  const list = el('div', 'array-list');
+  wrap.appendChild(list);
+
+  function renderLinks() {
+    list.innerHTML = '';
+    d.links.forEach((lnk, i) => {
+      const item = makeArrayItem(i, lnk.label || 'Link '+i,
+        inner => {
+          const g = el('div', 'field-group');
+          const iLabel = input('text', lnk.label, '', 'GitHub');
+          const iHref  = input('url',  lnk.href,  '', 'https://…');
+          iLabel.addEventListener('input', () => { lnk.label = iLabel.value; refreshTitle(item, lnk.label); onChange(); });
+          iHref.addEventListener('input',  () => { lnk.href  = iHref.value;  onChange(); });
+          g.appendChild(makeField('Label', iLabel, ''));
+          g.appendChild(makeField('URL',   iHref,  ''));
+          inner.appendChild(g);
+        },
+        () => { d.links.splice(i,1); renderLinks(); onChange(); }
+      );
+      list.appendChild(item);
+    });
+  }
+  renderLinks();
+
+  const addBtn = el('button', 'add-btn');
+  addBtn.innerHTML = svgIcon(ICONS.plus) + ' Add Link';
+  addBtn.addEventListener('click', () => { d.links.push({ label: 'Link', href: 'https://' }); renderLinks(); onChange(); });
+  wrap.appendChild(addBtn);
+}
+
+/* TWEAKS */
+function buildTweaks(wrap) {
+  const d = DATA.tweaks = DATA.tweaks || {};
+
+  function rangeField(lbl, key, min, max, step, unit) {
+    const row = el('div', 'field');
+    const lblEl = document.createElement('label'); lblEl.textContent = lbl;
+    const rrow = el('div', 'range-row');
+    const rng = document.createElement('input'); rng.type = 'range';
+    rng.min = min; rng.max = max; rng.step = step; rng.value = d[key] ?? min;
+    const val = el('span', 'range-val'); val.textContent = (d[key]??min) + (unit||'');
+    rng.addEventListener('input', () => { d[key] = parseFloat(rng.value); val.textContent = rng.value+(unit||''); onChange(); });
+    rrow.appendChild(rng); rrow.appendChild(val);
+    row.appendChild(lblEl); row.appendChild(rrow);
+    return row;
+  }
+
+  function checkField(lbl, key) {
+    const row = el('div', 'check-row');
+    const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = !!d[key];
+    const lblEl = document.createElement('label'); lblEl.textContent = lbl;
+    chk.addEventListener('change', () => { d[key] = chk.checked; onChange(); });
+    row.appendChild(chk); row.appendChild(lblEl);
+    return row;
+  }
+
+  const div1 = el('div', 'field-section'); div1.textContent = 'Globe & Scroll';
+  wrap.appendChild(div1);
+  wrap.appendChild(rangeField('Globe Speed',   'globeSpeed',   0.1, 2.5, 0.1, '×'));
+  wrap.appendChild(rangeField('Scroll Length', 'scrollLength', 120, 400, 10,  'vh'));
+
+  const div2 = el('div', 'field-section'); div2.textContent = 'Performance';
+  wrap.appendChild(div2);
+  wrap.appendChild(rangeField('Frame Rate', 'frameRate', 20, 60, 10, 'fps'));
+  wrap.appendChild(rangeField('Pixel Density','pixelCap', 1,  2,  0.25,'×'));
+
+  const div3 = el('div', 'field-section'); div3.textContent = 'Scene';
+  wrap.appendChild(div3);
+  wrap.appendChild(rangeField('Satellites', 'satCount',  0,   13,  1, ''));
+  wrap.appendChild(rangeField('Stars',      'starCount', 50, 700, 50, ''));
+  wrap.appendChild(checkField('Nebula Glow', 'nebula'));
+
+  const div4 = el('div', 'field-section'); div4.textContent = 'Interactions';
+  wrap.appendChild(div4);
+  wrap.appendChild(checkField('3D Card Tilt',   'cardTilt'));
+  wrap.appendChild(checkField('Cursor Trail',   'particleTrail'));
+
+  const div5 = el('div', 'field-section'); div5.textContent = 'Accent Colour';
+  wrap.appendChild(div5);
+  const g = el('div', 'field-group');
+  const iAccent = input('color', d.accentColor||'#ff6a00', '');
+  iAccent.addEventListener('input', () => { d.accentColor = iAccent.value; onChange(); });
+  g.appendChild(makeField('Accent Color', iAccent, ''));
+  wrap.appendChild(g);
+}
+
+/* ═══════════════════════════════════════════════
+   REFRESH ARRAY ITEM TITLE
+═══════════════════════════════════════════════ */
+function refreshTitle(item, title) {
+  const t = item.querySelector('.array-item-title');
+  if (t) t.textContent = title || '';
+}
+
+/* ═══════════════════════════════════════════════
+   BUILD ENTIRE FORM
+═══════════════════════════════════════════════ */
+function buildForm() {
+  const acc = document.getElementById('accordion');
+  acc.innerHTML = '';
+
+  const panels = [
+    { key:'identity', title:'Identity',  icon: ICONS.identity, badge: null,                             fn: buildIdentity },
+    { key:'nav',      title:'Navigation',icon: ICONS.nav,      badge: (DATA.nav?.links?.length||0)+' links', fn: buildNav  },
+    { key:'hero',     title:'Hero',      icon: ICONS.hero,     badge: null,                             fn: buildHero     },
+    { key:'stats',    title:'Stats',     icon: ICONS.stats,    badge: (DATA.stats?.length||0)+' items', fn: buildStats    },
+    { key:'projects', title:'Projects',  icon: ICONS.projects, badge: (DATA.projects?.length||0)+' items',fn: buildProjects},
+    { key:'blog',     title:'Blog',      icon: ICONS.blog,     badge: (DATA.blog?.length||0)+' posts',  fn: buildBlog     },
+    { key:'contact',  title:'Contact',   icon: ICONS.contact,  badge: null,                             fn: buildContact  },
+    { key:'footer',   title:'Footer',    icon: ICONS.footer,   badge: null,                             fn: buildFooter   },
+    { key:'tweaks',   title:'Tweaks',    icon: ICONS.tweaks,   badge: null,                             fn: buildTweaks   },
+  ];
+
+  panels.forEach(p => {
+    acc.appendChild(makePanel(p.key, p.title, p.icon, p.badge, p.fn));
+  });
+
+  // Open Identity by default
+  const first = acc.querySelector('.panel');
+  if (first) {
+    first.classList.add('open');
+    first.querySelector('.panel-header').setAttribute('aria-expanded','true');
+    const inner = first.querySelector('.panel-body-inner');
+    buildIdentity(inner);
+    inner.dataset.built = '1';
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+function init() {
+  // Set window.PORTFOLIO_DATA_URL (e.g. a raw GitHub URL) to load the current
+  // published data; falls back to the local portfolio-data.json.
+  const PORTFOLIO_DATA_URL = window.PORTFOLIO_DATA_URL || 'portfolio-data.json';
+  const dataUrl = PORTFOLIO_DATA_URL + (PORTFOLIO_DATA_URL.includes('?') ? '&' : '?') + 'cb=' + Date.now();
+  fetch(dataUrl)
+    .then(r => { if (!r.ok) throw 0; return r.json(); })
+    .then(json => {
+      DATA = json;
+      buildForm();
+      updatePreview();
+      setStatus('loaded from file', false);
+    })
+    .catch(() => {
+      DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      buildForm();
+      updatePreview();
+      setStatus('using defaults', false);
+      showToast('portfolio-data.json not found — loaded defaults');
+    });
+}
+
+init();
+</script>
+</body>
+</html>

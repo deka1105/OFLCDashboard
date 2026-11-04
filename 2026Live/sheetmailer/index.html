@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sheet Mailer — LinkedIn hiring posts into your Google Sheet</title>
+<meta name="description" content="A browser extension that captures LinkedIn hiring posts into a Google Sheet you own, then sends personalised outreach from your own Gmail. No server, no analytics.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html">Sheet Mailer</a>
+    <nav class="site">
+      <a href="index.html" aria-current="page">Overview</a>
+      <a href="support.html">Support</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>Stop copying LinkedIn posts into a spreadsheet by hand</h1>
+    <p class="lede">Sheet Mailer captures a hiring post into a Google Sheet you own — the person,
+      the role, the post text, the contact address — then sends personalised outreach from your
+      own Gmail, one template, throttled and capped.</p>
+    <div class="cta">
+      <a class="btn primary" href="support.html#install">Install and set up</a>
+      <a class="btn" href="#how">How it works</a>
+    </div>
+    <p><small>Free. No account with us, because there is no us to have an account with —
+      see <a href="#privacy">where your data goes</a>.</small></p>
+  </section>
+
+  <h2 id="how">The two halves</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Capture</h3>
+      <p>On a hiring post, click the toolbar icon — or the optional <code>+ Sheet</code> button in
+        the feed. You get an editable form: who posted it, the contact address found in the text,
+        the post body, and a role tag you pick. Confirm, and it becomes a row.</p>
+      <p>Nothing is guessed silently. Every field is editable before it is saved, and a post with
+        no address is stored flagged rather than quietly dropped.</p>
+    </div>
+    <div class="card">
+      <h3>Send</h3>
+      <p>Write one template with <code>{{Person}}</code>, <code>{{role}}</code>,
+        <code>{{JD}}</code> and <code>{{Post URL}}</code> placeholders. Preview it against a real
+        row. Dry run the whole sheet. Then send, with a gap between messages and a daily cap.</p>
+      <p>Status is written back to the sheet as it goes, so an interrupted run resumes without
+        sending anything twice.</p>
+    </div>
+  </div>
+
+  <h2>What it looks like</h2>
+
+  <figure>
+    <img src="assets/1-template-and-preview.png" alt="The template editor with subject and body containing placeholders, and below it a live preview showing the message rendered for one row, with the placeholders replaced by that person's name, role and post link.">
+    <figcaption>One template, previewed against a real row before anything is sent.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="assets/2-preflight-and-blocked-row.png" alt="A preflight summary table showing three rows, two ready to send, one blocked, a daily cap of fifty, and attachments on. Below it a table titled Rows the sender will refuse, listing one row with the reason: no valid email, no resume mapped for Scrum Master.">
+    <figcaption>Preflight counts every row and refuses the ones that are not ready, with the
+      reason spelled out, before a single message goes.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="assets/3-settings-roles-and-resumes.png" alt="Settings showing an editable list of role tags, a daily cap and gap between sends, and a table mapping each role to a résumé file.">
+    <figcaption>Your own role tags, your own sending limits, and a résumé per role.</figcaption>
+  </figure>
+
+  <h2 id="privacy">Where your data goes</h2>
+  <p><strong>There is no server.</strong> Sheet Mailer talks to Google's APIs directly from your
+    browser, as you. Your sheet, your mail, your captured rows and your sign-in token never pass
+    through any machine belonging to the developer, because there is no such machine.</p>
+  <p>No analytics, no telemetry, no crash reporting, no third-party services. Nothing is sold or
+    shared, and nothing is used to train anything. The
+    <a href="privacy.html">privacy policy</a> says this at length, including exactly which Google
+    endpoints are contacted and why.</p>
+
+  <div class="note">
+    <p><strong>It reads only the post you are looking at.</strong> The extension does not browse,
+      crawl, scroll, paginate, or call LinkedIn's APIs, and it never reads LinkedIn in the
+      background. A default install has no access to linkedin.com at all — the toolbar capture
+      works on the tab you invoke it on, and the in-feed button is off until you switch it on and
+      grant access.</p>
+  </div>
+
+  <h2>Honest limits</h2>
+  <ul>
+    <li><strong>Deliverability is the real constraint, not quota.</strong> A few hundred
+      near-identical cold emails from a consumer Gmail is exactly the pattern spam classifiers
+      look for. The daily cap defaults to 50 and attachments are off by default for that reason.
+      Warm up slowly.</li>
+    <li><strong>LinkedIn changes its markup.</strong> When it does, a field may come back empty.
+      The form is always editable and shows where each value came from, so the failure is visible
+      rather than silent — but it is a real maintenance cost of the approach.</li>
+    <li><strong>You are responsible for what you send.</strong> Bulk outreach is regulated
+      differently in different places, and LinkedIn's own terms restrict automated data
+      extraction. The <a href="terms.html">terms</a> go into this properly.</li>
+  </ul>
+
+  <h2>Getting started</h2>
+  <ol class="steps">
+    <li>Install the extension. The settings page opens by itself.</li>
+    <li>Want to try it first? Tick <strong>Demo mode</strong> — the whole flow runs locally with
+      no Google account and no mail leaving the browser.</li>
+    <li>Otherwise sign in with Google and paste the link to your sheet. Missing columns are
+      created for you; your own columns are left alone.</li>
+    <li>Edit the role tags to the ones you actually apply for, and you are ready to capture.</li>
+  </ol>
+  <p><a href="support.html#install">Full setup walkthrough →</a></p>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Sheet Mailer</span>
+    <a href="privacy.html">Privacy</a>
+    <a href="terms.html">Terms</a>
+    <a href="support.html">Support</a>
+    <span class="spacer"></span>
+    <a href="mailto:aryasoftechco@gmail.com">aryasoftechco@gmail.com</a>
+  </div>
+</footer>
+
+</body>
+</html>

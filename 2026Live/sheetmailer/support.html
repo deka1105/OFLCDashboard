@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Support — Sheet Mailer</title>
+<meta name="description" content="Setup walkthrough, answers to common questions, and fixes for the things that actually go wrong with Sheet Mailer.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html">Sheet Mailer</a>
+    <nav class="site">
+      <a href="index.html">Overview</a>
+      <a href="support.html" aria-current="page">Support</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<h1>Support</h1>
+<p class="lede">Setup, answers, and fixes for the things that actually go wrong — written from
+the failures that came up building it, not a generic help template.</p>
+
+<div class="note">
+  <p><strong>Fastest route for anything not covered here:</strong>
+    email <a href="mailto:aryasoftechco@gmail.com">aryasoftechco@gmail.com</a>. If a field came
+    out empty when capturing a post, use the <strong>Report broken extraction</strong> button in
+    the capture form first — it copies a description of the page's shape to your clipboard, with
+    none of the post's content in it. Pasting that into the email usually makes the cause
+    obvious immediately.</p>
+</div>
+
+<h2 id="install">Setting it up</h2>
+<p>The settings page opens by itself when you install. There are six numbered sections, and only
+the first two are compulsory — everything else has a working default.</p>
+<ol class="steps">
+  <li><strong>Try it with no account first, if you like.</strong> Tick <strong>Demo mode</strong>
+    at the top. The whole flow — capture, template, preview, dry run, send — runs locally. Rows
+    and "sent" mail stay in your browser and nothing is emailed to anyone.</li>
+  <li><strong>Google account.</strong> Sign in and approve the consent screen.</li>
+  <li><strong>Your Sheet.</strong> Paste the link and press <em>Test connection</em>. Missing
+    columns are created on first write, column order does not matter because everything is
+    matched by header name, and your own extra columns are left untouched.</li>
+  <li><strong>Roles.</strong> One per line. These are the tags you pick when capturing, and they
+    decide which résumé gets attached. Replace the defaults with the roles you actually apply
+    for.</li>
+  <li><strong>Sending limits.</strong> Daily cap 50 and a 1.2 second gap are sensible starting
+    points. Raise them slowly.</li>
+  <li><strong>Résumé per role</strong> and the <strong>feed button</strong> are both optional and
+    both off by default.</li>
+</ol>
+
+<h2>Questions that come up</h2>
+
+<details>
+  <summary>Do I need a Google Cloud project, an API key, or anything technical?</summary>
+  <p>No. You need a Google account and a spreadsheet. The extension carries its own credentials;
+    you never see or create one.</p>
+</details>
+
+<details>
+  <summary>Why does Google say "this app isn't verified"?</summary>
+  <p>Because it has not completed Google's verification review yet. Expand <strong>Advanced</strong>
+    and continue. It is a statement about the review process, not about anything being wrong with
+    your account or the extension. Note that while verification is pending, sign-in only works for
+    addresses that have been added as testers — if you get <code>access_denied</code>, email us
+    and ask to be added.</p>
+</details>
+
+<details>
+  <summary>Will this get my LinkedIn account restricted?</summary>
+  <p>We cannot promise it will not, and we would rather say so than reassure you. The extension
+    reads only a post you have opened and explicitly asked it to read — no crawling, no
+    scrolling, no background reads, no calls to LinkedIn's APIs — which is a very different
+    pattern from bulk scraping. But LinkedIn's User Agreement restricts automated data
+    collection, and any enforcement lands on your account rather than ours. The
+    <a href="terms.html#linkedin">terms</a> cover this.</p>
+</details>
+
+<details>
+  <summary>How many emails a day can I actually send?</summary>
+  <p>Gmail's own limit is 500 a day on a consumer account and 2,000 on Workspace — but that is
+    not your real constraint. Deliverability is. A few hundred near-identical cold emails from a
+    consumer address is precisely the pattern spam filters are tuned for, and a run can look
+    perfectly successful while every message lands in spam. Start at 10 a day, watch for replies
+    rather than for errors, and raise it slowly. The cap defaults to 50 for this reason.</p>
+</details>
+
+<details>
+  <summary>Should I attach my résumé to every email?</summary>
+  <p>Usually not, which is why it is off by default. An attachment on every one of a few hundred
+    cold emails is a strong spam signal. Linking a copy in the body generally delivers better.
+    Turn it on when the file itself genuinely needs to arrive.</p>
+</details>
+
+<details>
+  <summary>What happens if I close the tab in the middle of a send?</summary>
+  <p>Nothing is lost and nothing is sent twice. Each row's outcome is written to your sheet as it
+    happens, and pressing Send again re-reads the sheet and skips anything already marked
+    <code>SENT</code>.</p>
+</details>
+
+<details>
+  <summary>Can I use my own columns in the template?</summary>
+  <p>Yes. Any column in your sheet is available as a placeholder, matched by header name —
+    <code>{{Person}}</code>, <code>{{role}}</code>, <code>{{JD}}</code>, <code>{{email}}</code>,
+    <code>{{Post URL}}</code>, <code>{{Person LinkedIn}}</code>, <code>{{Captured At}}</code>, and
+    anything you add yourself. The three the sender writes during a run — Status, Sent At and
+    Error — are deliberately excluded, because they are empty at the moment the message is
+    built.</p>
+</details>
+
+<details>
+  <summary>Where is my data? Can you see it?</summary>
+  <p>No. There is no server. Everything travels from your browser to Google's APIs as you, and
+    your rows live in your own spreadsheet. See the <a href="privacy.html">privacy policy</a>,
+    which lists every endpoint contacted and why.</p>
+</details>
+
+<h2>When something is broken</h2>
+
+<details>
+  <summary>The capture form opened but every field is empty</summary>
+  <p>LinkedIn changed its page structure and the extension picked the wrong element. Fill the
+    fields in by hand — the form is editable and the row will save perfectly well — and then
+    press <strong>Report broken extraction</strong> and email us the clipboard contents. That
+    report describes the page's shape without including any of the post's text, and it is what
+    lets a fix ship quickly.</p>
+</details>
+
+<details>
+  <summary>The "+ Sheet" button is not appearing in the feed</summary>
+  <p>Three things to check, in order. In settings §6, confirm the toggle is on and that access to
+    linkedin.com was granted when it asked — the section reports its own state. Then reload the
+    LinkedIn tab, since the script attaches on page load. If you have just reinstalled or updated
+    the extension, reload the tab again: the registration is re-established when the extension
+    starts, and an already-open tab will not have it.</p>
+</details>
+
+<details>
+  <summary>Sign-in fails with redirect_uri_mismatch</summary>
+  <p>This is a configuration problem on our side rather than yours, so please report it — tell us
+    which browser you are using. It means the address the browser was sent back to has not been
+    registered with Google. It is browser-specific, and Firefox is the usual culprit, because
+    Firefox builds a different return address for every installation.</p>
+</details>
+
+<details>
+  <summary>Sign-in fails with access_denied</summary>
+  <p>Your address has not been added as a tester while verification is pending. Email us and ask.
+    There is a hard limit of 100 testers, so this is temporary by nature rather than a policy.</p>
+</details>
+
+<details>
+  <summary>A row will not send and the campaign page says it is blocked</summary>
+  <p>That is intentional, and the reason is given in the preflight table next to the row number:
+    no valid email, no role tag, or no résumé mapped for that role while attachments are on. Fix
+    it in the sheet or in settings and press <em>Read the sheet</em> again. The run deliberately
+    refuses to start rather than send a half-finished message.</p>
+</details>
+
+<details>
+  <summary>Mail is sending but everything lands in spam</summary>
+  <p>Slow down, make the messages less identical, and drop the attachment. Send fewer than ten a
+    day for the first week. A sending reputation is built slowly and damaged quickly, and the
+    extension cannot tell you this is happening — every row will read <code>SENT</code>, because
+    Gmail accepted the message. Judge by replies, not by statuses.</p>
+</details>
+
+<h2>Reporting something, usefully</h2>
+<p>Email <a href="mailto:aryasoftechco@gmail.com">aryasoftechco@gmail.com</a>. What makes a
+report actionable:</p>
+<ul>
+  <li>Which browser, and roughly which version.</li>
+  <li>What you expected, and what happened instead.</li>
+  <li>For an extraction problem: the <strong>Report broken extraction</strong> clipboard
+    contents.</li>
+  <li>For a sign-in problem: the exact error text, including any <code>error=</code> value in the
+    address bar.</li>
+</ul>
+<p>Please do not send screenshots containing other people's contact details, and do not send your
+spreadsheet. Neither is needed, and we would rather not receive them.</p>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Sheet Mailer</span>
+    <a href="privacy.html">Privacy</a>
+    <a href="terms.html">Terms</a>
+    <a href="support.html">Support</a>
+    <span class="spacer"></span>
+    <a href="mailto:aryasoftechco@gmail.com">aryasoftechco@gmail.com</a>
+  </div>
+</footer>
+
+</body>
+</html>
