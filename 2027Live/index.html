@@ -589,13 +589,9 @@
 </div>
 
 <script>
-// ---- CSV DATA SOURCE ----
-// UPDATE THIS URL to point to your CSV file
-// const CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/sampleMerged.csv';
-// const CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/merged3yrsV2.csv';
+
 
 // Wage year 2026-27. Built by 2027/build_2027.py from OFLC_Wages_2026-27/.
-// const GEO_CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/Mobile-Version/2027/Prof_w_linksSemicolon.csv';
 const GEO_CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/Mobile-Version/2027/Prof_w_linksRearrangeColumn.csv';
 
 // CSV columns: Area(0), SocCode(1), GeoLvl(2), Level1(3), Level2(4), Level3(5), Level4(6), Average(7), AreaName(8), StateAb(9), State(10), CountyTownName(11), OES_SOCTITLE(12), ...
@@ -612,41 +608,6 @@ let geoIndex = {};       // occupation -> {soccode, filename, url}
 const csvCache = new Map(); // csv url -> {titleIndex, countyIndex}
 let OCCUPATIONS = [];    // list for autocomplete
 
-// async function loadGeoCSV() {
-//   const response = await fetch(GEO_CSV_URL);
-//   if (!response.ok) throw new Error('Failed to load Profession.csv');
-//
-//   const text = await response.text();
-//   const lines = text.split('\n');
-//
-//   for (let i = 1; i < lines.length; i++) {
-//     const row = lines[i].trim();
-//     if (!row) continue;
-//
-//     const cols = row.split(',');
-//
-//     // const occupation = cols[0];
-//     // const soccode = cols[1];
-//     // const filename = cols[2];
-//     // const url = cols[3];
-//     //
-//     //
-//     const occupation = cols[4];
-//     const soccode = cols[0];
-//     const filename = cols[5];
-//     const url = cols[6];
-//
-//     geoIndex[occupation] = {
-//       soccode,
-//       filename,
-//       url
-//     };
-//
-//     OCCUPATIONS.push(occupation);
-//   }
-//
-//   OCCUPATIONS.sort();
-// }
 
 // Split one CSV line, honouring quoted fields that contain commas.
 function parseCsvLine(line) {
@@ -733,12 +694,6 @@ async function loadCSVData(csvUrl) {
 
     if (fields.length < 13) continue;
 
-    // CSV columns: Area(0), SocCode(1), GeoLvl(2), Level1(3), Level2(4), Level3(5), Level4(6),
-    //   Average(7), AreaName(8), StateAb(9), State(10), CountyTownName(11), OES_SOCTITLE(12), ...
-    // const county = fields[11];
-    // const stAb   = fields[9];
-    // const title  = fields[12];
-    // const socCode = fields[1];
     const county = fields[11];
     const stAb   = fields[9];
 
@@ -974,13 +929,6 @@ async function init() {
     tooltip.style.top = y + 'px';
   }
 
-  // countyPaths
-  //   .on('mouseover', function(event, d) {
-  //     const fips = String(d.id).padStart(5,'0');
-  //     showTip(event, fips);
-  //   })
-  //   .on('mousemove', moveTip)
-  //   .on('mouseout', () => tooltip.classList.remove('visible'));
 
   countyPaths
   .on('mouseover', function(event, d) {
@@ -1111,68 +1059,7 @@ async function init() {
       });
     }
 
-  // function renderAC(items) {
-  //   console.log(items);
-  //   if (items.length === 0) { acList.classList.remove('open'); return; }
-  //   acList.innerHTML = items.slice(0,30).map((t,i) => {
-  //     // const soc = titleSocCodeMap[t] || '';
-  //     // const soc = geoIndex[t] ? geoIndex[t].soccode : '';
-  //     const soc = geoIndex[t].onetcode;
-  //     const title = geoIndex[t].category;
-  //     const normalizedTitle = title.includes(';') ? title.replaceAll(';', ',') : title;
-  //
-  //     return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
-  //       <div>${t}</div>
-  //       <div class="ac-soc">${soc} • ${normalizedTitle}</div>
-  //     // </div>`;
-  //     // return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
-  //     //   <div>${t}</div>
-  //     //   <div class="ac-soc">SOC: ${soc}</div>
-  //     // </div>`;
-  //     // return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
-  //     //   <div>${t}</div>
-  //     //   ${soc ? `<div class="ac-soc">SOC: ${soc}</div>` : ''}
-  //     // </div>`;
-  //   }).join('');
-  //   acList.classList.add('open');
-  //   acIndex = -1;
-  //   acList.querySelectorAll('.ac-item').forEach(el => {
-  //     el.addEventListener('mousedown', e => {
-  //       e.preventDefault();
-  //       selectTitle(el.dataset.title);
-  //     });
-  //   });
-  // }
 
-  // function selectTitle(title) {
-  //   selectedTitle = title;
-  //   input.value = title;
-  //   acList.classList.remove('open');
-  //   updateMap();
-  // }
-//   async function selectTitle(title) {
-//
-//   selectedTitle = title;
-//   input.value = title;
-//   acList.classList.remove('open');
-//
-//   const geo = geoIndex[title];
-//
-//   if (!geo) return;
-//
-//   document.getElementById('loading').style.display = 'flex';
-//   document.getElementById('load-msg').textContent = 'Loading occupation data...';
-//
-//   // clear previous data
-//   titleIndex = {};
-//   countyIndex = {};
-//
-//   await loadCSVData(geo.url);
-//
-//   document.getElementById('loading').style.display = 'none';
-//
-//   updateMap();
-// }
 
 async function selectTitle(title) {
 
