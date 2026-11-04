@@ -1714,6 +1714,27 @@ async function selectTitle(title, pushUrl = true) {
     }
   });
 
+  // ---- CLEAR BUTTONS ----
+  // mousedown is suppressed so the field keeps focus; otherwise the blur fires
+  // before the click and the caret lands somewhere else.
+  document.querySelectorAll('.input-clear').forEach(btn =>
+    btn.addEventListener('mousedown', e => e.preventDefault()));
+
+  document.getElementById('filter-clear').addEventListener('click', () => {
+    // Just the text, ready for a new search -- the map keeps what it is showing.
+    input.value = '';
+    acList.classList.remove('open');
+    input.focus();
+  });
+
+  document.getElementById('location-clear').addEventListener('click', () => {
+    // Here the field is the selection, so clear the whole thing: the pin on
+    // the map, the county card and the url parameter all go with it.
+    locList.classList.remove('open');
+    clearCounty();
+    locInput.focus();
+  });
+
   // ---- METRIC BUTTONS ----
   document.querySelectorAll('.metric-btn').forEach(btn => {
     btn.addEventListener('click', () => {
