@@ -1098,17 +1098,13 @@ async function init() {
   let acIndex = -1;
 
   function renderAC(items) {
-      console.log(items);
       if (items.length === 0) { acList.classList.remove('open'); return; }
-      acList.innerHTML = items.slice(0,30).map((t,i) => {
+      acList.innerHTML = items.slice(0,30).map(t => {
         const soc = geoIndex[t].onetcode;
         const title = geoIndex[t].category;
-        const normalizedTitle = title.includes(';') ? title.replaceAll(';', ',') : title;
-        const normalizedT = t.replaceAll(';', ',');
-        // data-key keeps the ';' form the indexes are keyed by; data-title is display only.
-        return `<div class="ac-item" data-key="${t.replace(/"/g,'&quot;')}" data-title="${normalizedT.replace(/"/g,'&quot;')}">
-          <div>${normalizedT}</div>
-          <div class="ac-soc">${soc} • ${normalizedTitle}</div>
+        return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
+          <div>${t}</div>
+          <div class="ac-soc">${soc} • ${title}</div>
         </div>`;
       }).join('');
       acList.classList.add('open');
@@ -1116,7 +1112,7 @@ async function init() {
       acList.querySelectorAll('.ac-item').forEach(el => {
         el.addEventListener('mousedown', e => {
           e.preventDefault();
-          selectTitle(el.dataset.key);
+          selectTitle(el.dataset.title);
         });
       });
     }
@@ -1187,8 +1183,7 @@ async function init() {
 async function selectTitle(title) {
 
   selectedTitle = title;
-  selectedLabel = title.replaceAll(';', ',');
-  input.value = selectedLabel;
+  input.value = title;
   acList.classList.remove('open');
 
   const geo = geoIndex[title];
