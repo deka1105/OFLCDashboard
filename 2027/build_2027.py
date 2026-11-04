@@ -28,7 +28,7 @@ SRC = os.path.join(ROOT, "OFLC_Wages_2026-27")
 DIVIDED_DIR = os.path.join(HERE, "DividedCSV")
 URL_BASE = (
     "https://media.githubusercontent.com/media/deka1105/OFLCDashboard"
-    "/refs/heads/main/2027/DividedCSV/"
+    "/refs/heads/Mobile-Version/2027/DividedCSV/"
 )
 
 SEMICOLON_COLS = ["OES_SOCTITLE", "ONetTitle"]
