@@ -802,26 +802,36 @@ async function loadCSVData(csvUrl) {
     if (!titleSocCodeMap[title]) titleSocCodeMap[title] = socCode;
     const key = county + '|' + stAb;
     if (!titleIndex[title]) titleIndex[title] = [];
-    // titleIndex[title].push({county, stAb, l1: +l1||0, l2: +l2||0, l3: +l3||0, l4: +l4||0, avg: +avg||0});
+
+    // OFLC publishes no figure at all for ~1,759 cells this year ('High Wage'
+    // above the OES cap, or 'No Leveled Wage'). Where last year had one, use
+    // it and carry the wage year so the UI can label it.
+    let v = { l1: +l1 || 0, l2: +l2 || 0, l3: +l3 || 0, l4: +l4 || 0, avg: +avg || 0, year: '' };
+    if (!v.avg && !v.l1 && !v.l2 && !v.l3 && !v.l4) {
+      const prev = fallbackIndex.get(socCode + '|' + fields[0]);
+      if (prev) v = prev;
+    }
+
     titleIndex[title].push({
   county,
   stAb,
-  l1: +l1 || 0,
-  l2: +l2 || 0,
-  l3: +l3 || 0,
-  l4: +l4 || 0,
-  avg: +avg || 0,
+  l1: v.l1,
+  l2: v.l2,
+  l3: v.l3,
+  l4: v.l4,
+  avg: v.avg,
+  year: v.year,
   onetTitle,
   oesTitle
 });
     if (!countyIndex[key]) countyIndex[key] = {};
-    // countyIndex[key][title] = {l1: +l1||0, l2: +l2||0, l3: +l3||0, l4: +l4||0, avg: +avg||0};
     countyIndex[key][title] = {
-  l1: +l1 || 0,
-  l2: +l2 || 0,
-  l3: +l3 || 0,
-  l4: +l4 || 0,
-  avg: +avg || 0,
+  l1: v.l1,
+  l2: v.l2,
+  l3: v.l3,
+  l4: v.l4,
+  avg: v.avg,
+  year: v.year,
   onetTitle,
   oesTitle
 };
