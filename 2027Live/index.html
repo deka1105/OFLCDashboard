@@ -726,12 +726,8 @@ async function loadGeoCSV() {
   OCCUPATIONS.sort();
 }
 
-// async function loadCSVData() {
 async function loadCSVData(csvUrl) {
-  // const response = await fetch(CSV_URL);
-  const response = await fetch(csvUrl);
-  if (!response.ok) throw new Error('Failed to fetch CSV: ' + response.status);
-  const text = await response.text();
+  const text = await fetchCsvText(csvUrl);
   const lines = text.split('\n');
   const titleSet = new Set();
 
@@ -739,23 +735,7 @@ async function loadCSVData(csvUrl) {
     const line = lines[i].trim();
     if (!line) continue;
 
-    // Parse CSV line (handles quoted fields with commas)
-    const fields = [];
-    let current = '';
-    let inQuotes = false;
-    for (let j = 0; j < line.length; j++) {
-      const ch = line[j];
-      if (inQuotes) {
-        if (ch === '"' && line[j + 1] === '"') { current += '"'; j++; }
-        else if (ch === '"') { inQuotes = false; }
-        else { current += ch; }
-      } else {
-        if (ch === '"') { inQuotes = true; }
-        else if (ch === ',') { fields.push(current.trim()); current = ''; }
-        else { current += ch; }
-      }
-    }
-    fields.push(current.trim());
+    const fields = parseCsvLine(line);
 
     if (fields.length < 13) continue;
 
