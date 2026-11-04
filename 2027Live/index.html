@@ -935,10 +935,11 @@ async function init() {
     if (selectedTitle) {
       html += `<div class="tt-title">${selectedTitle}</div>`;
       if (tdata) {
+        html += `<div class="tt-unit${activeUnit==='A'?' annual':''}">${unitWords()}</div>`;
         const metricLabels = {l1:'Level 1', l2:'Level 2', l3:'Level 3', l4:'Level 4', avg:'Average'};
         ['l1','l2','l3','l4','avg'].forEach(m => {
           const v = tdata[m];
-          html += `<div class="tt-row"><span class="lbl">${metricLabels[m]}</span><span class="val${m===activeMetric?' highlight':''}">${fmt(v)}</span></div>`;
+          html += `<div class="tt-row"><span class="lbl">${metricLabels[m]}</span><span class="val${m===activeMetric?' highlight':''}">${fmtNum(v)}</span></div>`;
         });
       } else {
         html += `<div class="tt-nodata">No data for this occupation</div>`;
