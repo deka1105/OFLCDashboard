@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="image" property="og:image" content="headerImage.png">
 <meta name="author" content="Shubahm Arun Dekatey">
-<meta property="article:published_time" content="2026-03-11T12:00:00-04:00">
+<meta property="article:published_time" content="2026-11-04T12:00:00-05:00">
 <meta name="description" property="og:description" content="Discover how your salary compares across US counties and roles with this interactive wage explorer dashboard.">
 <title>US County Wage Explorer</title>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
@@ -576,7 +576,7 @@
     <h2>Data Sources</h2>
     <p>Wage data is drawn from the <strong>Office of Foreign Labor Certification (OFLC)</strong> prevailing wage database, cross-referenced with <strong>Occupational Employment and Wage Statistics (OEWS)</strong> survey data published by the U.S. Bureau of Labor Statistics. Data files can be found <a href="https://flag.dol.gov/wage-data/wage-data-downloads" target="_blank" rel="noopener noreferrer">here</a>.</p>
     <p>Geographic boundaries use the <a href="https://github.com/topojson/us-atlas" target="_blank">US Atlas TopoJSON</a> county dataset. Occupation titles follow the <strong>Standard Occupational Classification (SOC)</strong> system.</p>
-    <p style="color:var(--muted);font-size:0.65rem;">Data covers a 3-year merged period. Some counties may have limited or no coverage for specific occupations.</p>
+    <p style="color:var(--muted);font-size:0.65rem;">Data covers OFLC wage year 2026&ndash;27 (effective July 2026). Some counties may have limited or no coverage for specific occupations.</p>
     <button id="source-close">CLOSE</button>
   </div>
 </div>
@@ -1040,7 +1040,7 @@ async function init() {
     //   `Showing ${Object.keys(fipsVal).length} counties for "${selectedTitle}"`;
 
     document.getElementById('status').textContent =
-  `Showing ${Object.keys(fipsVal).length} counties for "${selectedTitle}" • Pinch or use buttons to zoom`;
+  `Showing ${Object.keys(fipsVal).length} counties for "${selectedLabel}" • Pinch or use buttons to zoom`;
 
     // Update side panel
     updatePanel(rows, minVal, maxVal);
