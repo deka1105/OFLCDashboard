@@ -852,23 +852,51 @@ function lerpColor(a, b, t) {
 // Annual salaries get thousands separators and no cents -- "$236,770" rather
 // than "$236770.00". fmtNum is for dense rows that already state the unit in
 // their heading; fmt carries the suffix for figures that stand on their own.
+function displayUnit() { return userUnitPref || activeUnit; }
+function isConverted() { return displayUnit() !== activeUnit; }
+
+// Values are stored as published; only the display is converted. The map
+// colours, sorting and ranks all use the raw numbers, and since the
+// conversion is a single constant factor none of them change.
+function toDisplay(v) {
+  if (!isConverted()) return v;
+  return displayUnit() === 'A' ? v * HOURS_PER_YEAR : v / HOURS_PER_YEAR;
+}
+
 function fmtNum(v) {
   if (!v) return 'N/A';
-  return activeUnit === 'A'
-    ? '$' + Math.round(v).toLocaleString('en-US')
-    : '$' + v.toFixed(2);
+  const x = toDisplay(v);
+  return displayUnit() === 'A'
+    ? '$' + Math.round(x).toLocaleString('en-US')
+    : '$' + x.toFixed(2);
 }
 function fmt(v) { return v ? fmtNum(v) + unitSuffix() : 'N/A'; }
-function unitSuffix() { return activeUnit === 'A' ? '/yr' : '/hr'; }
-function unitWords() { return activeUnit === 'A' ? 'per year' : 'per hour'; }
+function unitSuffix() { return displayUnit() === 'A' ? '/yr' : '/hr'; }
+function unitWords() {
+  return (displayUnit() === 'A' ? 'per year' : 'per hour') +
+         (isConverted() ? ' (converted)' : '');
+}
 
-// Annual is the surprising case, so say so loudly rather than relying on "/yr".
+function syncUnitButtons() {
+  const shown = displayUnit();
+  document.querySelectorAll('.unit-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.unit === shown));
+}
+
+// Annual is the surprising case, so say so loudly rather than relying on
+// "/yr" -- and never let a converted figure pass as a published one.
 function updateUnitNote() {
   const note = document.getElementById('unit-note');
   if (!note) return;
   if (!selectedTitle) { note.textContent = ''; note.className = ''; return; }
-  note.textContent = activeUnit === 'A' ? 'ANNUAL SALARY' : 'Hourly rate';
-  note.className = activeUnit === 'A' ? 'annual' : '';
+  if (isConverted()) {
+    note.textContent = (displayUnit() === 'A' ? 'converted to yearly' : 'converted to hourly')
+      + ' @ 2,080 h';
+    note.className = 'converted';
+  } else {
+    note.textContent = activeUnit === 'A' ? 'ANNUAL SALARY' : 'Hourly rate';
+    note.className = activeUnit === 'A' ? 'annual' : '';
+  }
 }
 </script>
 
