@@ -1414,6 +1414,7 @@ function writeUrlState(push) {
   const params = new URLSearchParams();
   if (selectedTitle) params.set('occ', selectedTitle);
   if (activeMetric !== 'avg') params.set('metric', activeMetric);
+  if (userUnitPref) params.set('unit', userUnitPref === 'A' ? 'yr' : 'hr');
   // Share the ZIP that was typed, not the FIPS it resolved to.
   if (locatedVia) params.set('zip', locatedVia);
   else if (locatedFips) params.set('fips', locatedFips);
@@ -1548,6 +1549,15 @@ async function selectTitle(title, pushUrl = true) {
     btn.addEventListener('click', () => {
       setMetric(btn.dataset.metric, true);
       updateMap();
+    });
+  });
+
+  // ---- HOURLY / YEARLY ----
+  document.querySelectorAll('.unit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      userUnitPref = btn.dataset.unit;
+      writeUrlState(false);
+      updateMap();            // repaints every figure, and syncs the buttons
     });
   });
 
