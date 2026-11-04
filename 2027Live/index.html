@@ -67,6 +67,19 @@
   }
   #filter-input:focus, #location-input:focus { border-color: var(--accent); }
 
+  /* Clear button. Shown via :placeholder-shown rather than a JS flag, so it
+     stays right when the value is set in code (selecting an occupation,
+     opening a shared link) and not only when someone types. */
+  #filter-input, #location-input { padding-right: 26px; }
+  .autocomplete-wrap .input-clear {
+    position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+    display: none; background: none; border: none; padding: 2px 5px;
+    color: var(--muted); font-family: var(--font); font-size: 0.95rem;
+    line-height: 1; cursor: pointer;
+  }
+  .autocomplete-wrap input:not(:placeholder-shown) ~ .input-clear { display: block; }
+  .autocomplete-wrap .input-clear:hover { color: var(--accent); }
+
   .autocomplete-wrap { position: relative; }
   #autocomplete-list, #location-list {
     position: absolute;
@@ -563,6 +576,7 @@
     <label>Filter by Occupation</label>
     <div class="autocomplete-wrap">
       <input id="filter-input" type="text" placeholder="Type to search occupations..." autocomplete="off" />
+      <button type="button" class="input-clear" id="filter-clear" title="Clear" aria-label="Clear occupation search">&times;</button>
       <div id="autocomplete-list"></div>
     </div>
   </div>
@@ -571,6 +585,7 @@
     <label>Find Your County</label>
     <div class="autocomplete-wrap">
       <input id="location-input" type="text" placeholder="ZIP code or county name..." autocomplete="off" />
+      <button type="button" class="input-clear" id="location-clear" title="Clear" aria-label="Clear county search">&times;</button>
       <div id="location-list"></div>
     </div>
   </div>
