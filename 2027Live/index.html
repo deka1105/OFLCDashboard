@@ -600,8 +600,9 @@
 // const CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/sampleMerged.csv';
 // const CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/merged3yrsV2.csv';
 
-// const GEO_CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/Prof_w_linksSemicolon.csv';
-const GEO_CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/Prof_w_linksRearrangeColumn.csv';
+// Wage year 2026-27. Built by 2027/build_2027.py from OFLC_Wages_2026-27/.
+// const GEO_CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/2027/Prof_w_linksSemicolon.csv';
+const GEO_CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/main/2027/Prof_w_linksRearrangeColumn.csv';
 
 // CSV columns: Area(0), SocCode(1), GeoLvl(2), Level1(3), Level2(4), Level3(5), Level4(6), Average(7), AreaName(8), StateAb(9), State(10), CountyTownName(11), OES_SOCTITLE(12), ...
 
@@ -609,7 +610,8 @@ let titleIndex = {}; // title -> [{county, stAb, l1,l2,l3,l4,avg}]
 let countyIndex = {}; // "CountyName|ST" -> {title -> {l1..avg}}
 let titleSocCodeMap = {}; // title -> SocCode
 let TITLES = [];
-let selectedTitle = null;
+let selectedTitle = null;  // index/data key, commas stored as ';'
+let selectedLabel = null;  // same title with ',' restored, for display
 let activeMetric = 'avg';
 let currentData = {};
 
