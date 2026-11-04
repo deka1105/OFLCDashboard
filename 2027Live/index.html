@@ -1032,19 +1032,63 @@ async function init() {
     nameFipsMap[baseName.toUpperCase() + '|' + stAb] = fips;
   });
 
+  // Accents differ between the two sources: the map says "Doña Ana", OFLC
+  // says "Dona Ana County". Compare with the marks removed.
+  const fold = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  Object.keys(nameFipsMap).forEach(k => {
+    const f = fold(k);
+    if (f !== k && !nameFipsMap[f]) nameFipsMap[f] = nameFipsMap[k];
+  });
+
+  // Places the 2020 county geometry cannot name on its own.
+  //
+  // Connecticut retired its 8 counties in 2022 and the Census Bureau replaced
+  // them with 9 planning regions, which is what OFLC now publishes. The map
+  // is 2020 vintage, so each region is drawn on the old county it covers most
+  // of -- worked out from where all 169 CT towns landed in each vintage
+  // (joined on their stable ANSI codes, weighted by land area). Shares run
+  // from 61% to 100%, so edges are approximate. Greater Bridgeport and
+  // Naugatuck Valley never dominate any old county and so are not drawn;
+  // Greater Bridgeport shares its wage area with Western Connecticut, which
+  // is, but Naugatuck Valley's Waterbury-Shelton area has no home on this map.
+  //
+  // Alaska split Valdez-Cordova into Chugach and Copper River in 2019; both
+  // fall back onto the old shape.
+  const COUNTY_ALIASES = {
+    'Capitol Planning Region|CT': ['09003', '09013'],
+    'Lower Connecticut River Valley Planning Region|CT': ['09007'],
+    'Northeastern Connecticut Planning Region|CT': ['09015'],
+    'Northwest Hills Planning Region|CT': ['09005'],
+    'South Central Connecticut Planning Region|CT': ['09009'],
+    'Southeastern Connecticut Planning Region|CT': ['09011'],
+    'Western Connecticut Planning Region|CT': ['09001'],
+    'Chugach Census Area|AK': ['02261'],
+    'Copper River Census Area|AK': ['02261']
+  };
+
+  // One data row can cover more than one shape on the map, so this returns a
+  // list rather than a single FIPS.
+  function resolveCountyFipsList(county, stAb) {
+    const alias = COUNTY_ALIASES[county + '|' + stAb];
+    if (alias) return alias;
+
+    const tries = [county];
+    // " City and Borough" covers Juneau, Sitka, Wrangell and Yakutat.
+    const stripped = county
+      .replace(/ City and Borough$| County$| Parish$| Borough$| Census Area$| Municipality$| Municipio$| city$| City$/, '')
+      .trim();
+    tries.push(stripped, stripped + ' County', stripped + ' Parish');
+
+    for (const t of tries) {
+      const hit = nameFipsMap[t + '|' + stAb] || nameFipsMap[fold(t) + '|' + stAb];
+      if (hit) return [hit];
+    }
+    return [];
+  }
+
   function resolveCountyFips(county, stAb) {
-    // Direct lookup
-    let fips = nameFipsMap[county + '|' + stAb];
-    if (fips) return fips;
-    // Strip common suffixes and try
-    const stripped = county.replace(/ County$| Parish$| Borough$| Census Area$| Municipality$| Municipio$| city$| City$/, '').trim();
-    fips = nameFipsMap[stripped + '|' + stAb];
-    if (fips) return fips;
-    fips = nameFipsMap[stripped + ' County|' + stAb];
-    if (fips) return fips;
-    fips = nameFipsMap[stripped + ' Parish|' + stAb];
-    if (fips) return fips;
-    return null;
+    const list = resolveCountyFipsList(county, stAb);
+    return list.length ? list[0] : null;
   }
 
   // SVG setup
