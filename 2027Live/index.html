@@ -120,6 +120,20 @@
   .legend-labels { display: flex; justify-content: space-between; width: 140px; font-size: 0.6rem; color: var(--muted); }
   #legend-min, #legend-max { font-size: 0.6rem; color: var(--muted); }
 
+  /* Which unit the figures are in. 61 SOC codes are annual, and that reads as
+     a thousandfold jump unless it is called out. */
+  #unit-note {
+    font-size: 0.58rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.08em; min-height: 0.8rem;
+  }
+  #unit-note.annual, .panel-unit.annual, .tt-unit.annual { color: #f0b429; font-weight: 700; }
+  .panel-unit, .tt-unit {
+    font-size: 0.58rem; color: var(--muted); font-weight: 400;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .panel-unit { margin-left: 6px; }
+  #tooltip .tt-unit { display: block; margin: -4px 0 6px; }
+
   /* MAIN */
   .main { flex: 1; position: relative; overflow: hidden; display: flex; }
 
@@ -1048,7 +1062,8 @@ async function init() {
 
     const sorted = [...rows].sort((a,b) => b[activeMetric] - a[activeMetric]);
     // title.textContent = `Top Counties (${sorted.length})`;
-    title.textContent = `Top Counties`;
+    // The unit belongs here rather than on all five figures in every row.
+    title.innerHTML = `Top Counties <span class="panel-unit${activeUnit==='A'?' annual':''}">${unitWords()}</span>`;
 
     const metricLabels = {l1:'Lvl1', l2:'Lvl2', l3:'Lvl3', l4:'Lvl4', avg:'Avg'};
     panel.innerHTML = sorted.map(r => `
@@ -1058,7 +1073,7 @@ async function init() {
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
           ${['l1','l2','l3','l4','avg'].map(m =>
             `<span style="font-size:0.62rem;color:${m===activeMetric?'var(--accent)':'var(--muted)'}">
-              ${metricLabels[m]}: <strong style="color:${m===activeMetric?'var(--accent)':'var(--text)'}">${fmt(r[m])}</strong>
+              ${metricLabels[m]}: <strong style="color:${m===activeMetric?'var(--accent)':'var(--text)'}">${fmtNum(r[m])}</strong>
             </span>`
           ).join('')}
         </div>
