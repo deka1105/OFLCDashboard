@@ -400,16 +400,20 @@
       flex-direction: column;
     }
 
+    /* Stack the map above the county list rather than dropping the list. */
     #map-container {
-    height: calc(100vh - 140px);
-  }
+      height: 55vh;
+      flex-shrink: 0;
+    }
 
     #side-panel {
-      display:none;
+      width: 100%;
+      border-left: none;
+      border-top: 1px solid var(--border);
     }
 
     #county-list {
-      max-height: 40vh;
+      max-height: 45vh;
     }
 
 
@@ -481,20 +485,9 @@
       height: 50vh;
     }
 
-    #side-panel {
-      height: 50vh;
+    #county-list {
+      max-height: 40vh;
     }
-  }
-
-
-  @media (max-width: 768px) {
-    #side-panel {
-      display: none;
-    }
-
-    #map-container {
-    height: calc(100vh - 140px);
-  }
   }
 
 </style>
@@ -616,6 +609,7 @@ let activeMetric = 'avg';
 let currentData = {};
 
 let geoIndex = {};       // occupation -> {soccode, filename, url}
+const csvCache = new Map(); // csv url -> {titleIndex, countyIndex}
 let OCCUPATIONS = [];    // list for autocomplete
 
 // async function loadGeoCSV() {
