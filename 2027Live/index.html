@@ -120,6 +120,30 @@
   .legend-labels { display: flex; justify-content: space-between; width: 140px; font-size: 0.6rem; color: var(--muted); }
   #legend-min, #legend-max { font-size: 0.6rem; color: var(--muted); }
 
+  /* Find-your-county field. Keeps the located county visible at any zoom:
+     the <g> is scaled by d3.zoom, so the stroke has to opt out of scaling. */
+  .county.located {
+    stroke: #f0b429; stroke-width: 1.6px; vector-effect: non-scaling-stroke;
+  }
+  #found-county {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    background: rgba(240, 180, 41, 0.07);
+  }
+  #found-county:empty { display: none; }
+  #found-county .fc-name { font-size: 0.82rem; color: #f0b429; font-weight: 600; }
+  #found-county .fc-sub { font-size: 0.6rem; color: var(--muted); margin-top: 2px; }
+  #found-county .fc-wage { font-size: 1.15rem; color: var(--text); margin-top: 6px; font-weight: 600; }
+  #found-county .fc-rank { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+  #found-county .fc-also { font-size: 0.6rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  #found-county .fc-also a { color: var(--accent2); cursor: pointer; text-decoration: underline; }
+  #found-county .fc-clear {
+    float: right; font-size: 0.6rem; color: var(--muted);
+    cursor: pointer; border: none; background: none; padding: 0;
+  }
+  #found-county .fc-clear:hover { color: var(--text); }
+  #location-list .ac-item .ac-soc { text-transform: none; }
+  .loc-error { font-size: 0.6rem; color: #ef4444; padding: 8px 10px; }
+
   /* Which unit the figures are in. 61 SOC codes are annual, and that reads as
      a thousandfold jump unless it is called out. */
   #unit-note {
