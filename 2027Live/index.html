@@ -1065,8 +1065,10 @@ async function init() {
     // silently picking one.
     let also = '';
     const extra = locatedVia && zipIndex && zipIndex.get(locatedVia);
-    if (extra && extra.also.length) {
-      const links = extra.also.filter(f => fipsInfo[f])
+    if (extra) {
+      // Every county the ZIP covers except the one already being shown.
+      const links = [extra.fips].concat(extra.also)
+        .filter(f => f !== locatedFips && fipsInfo[f])
         .map(f => `<a data-fips="${f}">${fipsInfo[f].name}, ${fipsInfo[f].stAb}</a>`)
         .join(', ');
       if (links) also = `<div class="fc-also">ZIP ${locatedVia} also reaches ${links}.</div>`;
