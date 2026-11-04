@@ -68,7 +68,7 @@
   #filter-input:focus { border-color: var(--accent); }
 
   .autocomplete-wrap { position: relative; }
-  #autocomplete-list {
+  #autocomplete-list, #location-list {
     position: absolute;
     top: 100%;
     left: 0; right: 0;
@@ -80,7 +80,7 @@
     z-index: 100;
     display: none;
   }
-  #autocomplete-list.open { display: block; }
+  #autocomplete-list.open, #location-list.open { display: block; }
   .ac-item {
     padding: 6px 10px;
     font-size: 0.7rem;
@@ -1486,7 +1486,10 @@ async function selectTitle(title, pushUrl = true) {
   });
 
   document.addEventListener('click', e => {
-    if (!e.target.closest('.autocomplete-wrap')) acList.classList.remove('open');
+    if (!e.target.closest('.autocomplete-wrap')) {
+      acList.classList.remove('open');
+      locList.classList.remove('open');
+    }
   });
 
   // ---- METRIC BUTTONS ----
