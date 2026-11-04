@@ -1,0 +1,23 @@
+
+# Auto-added by watcher
+__pycache__/
+.pytest_cache/
+build/
+.tox/
+venv/
+dist/
+node_modules/
+.env/
+.venv/
+env/
+.mypy_cache/
+
+# Auto-added by watcher (too large for GitHub)
+/2026/Mar06_merged_Whole.csv
+/2026/OFLC_Wages_2025-26_Updated/merged3yrs.csv
+/2026/OFLC_Wages_2025-26_Updated/merged3yrsV2.csv
+/2026/merged3yrsV2.csv
+
+# Auto-added by watcher (too large for GitHub)
+/2026/Data/OFLC_Wages_2025-26_Updated/merged3yrs.csv
+/2026/Data/OFLC_Wages_2025-26_Updated/merged3yrsV2.csv

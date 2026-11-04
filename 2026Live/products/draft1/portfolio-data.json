@@ -1,0 +1,139 @@
+{
+  "identity": {
+    "name": "Shubham A. D.",
+    "role": "Builder",
+    "shortName": "SD.Folio",
+    "accentColor": "#ff6a00"
+  },
+
+  "nav": {
+    "links": [
+      { "label": "Home",    "href": "#hero" },
+      { "label": "About",   "href": "#about" },
+      { "label": "Work",    "href": "#projects" },
+      { "label": "Blog",    "href": "#blog" },
+      { "label": "Contact", "href": "#contact" }
+    ]
+  },
+
+  "hero": {
+    "label": "Shubham A. D. — Builder",
+    "title": ["Crafting", "Digital Products", "That Matter"],
+    "titleAccent": "Products",
+    "subtitle": "Software engineer building tech products, apps and tools that solve real problems — with code, craft, and attention to detail.",
+    "ctaPrimary":   { "text": "See Work",     "href": "#projects" },
+    "ctaSecondary": { "text": "Get in Touch", "href": "#contact" }
+  },
+
+  "stats": [
+    { "number": "12", "suffix": "+", "label": "Projects Shipped" },
+    { "number": "5",  "suffix": "y", "label": "Experience" },
+    { "number": "8",  "suffix": "+", "label": "Technologies" },
+    { "number": "∞",  "suffix": "",  "label": "Ideas Building" }
+  ],
+
+  "projects": [
+    {
+      "num": "01 — Featured",
+      "name": "SaaS Dashboard Platform",
+      "tag": "Featured",
+      "thumbLabel": "product screenshot / demo video",
+      "desc": "A full-stack analytics platform with real-time data visualization, multi-tenant architecture, and blazing-fast React frontend. Built for scale from day one.",
+      "stack": ["React", "Node.js", "PostgreSQL", "Redis"],
+      "featured": true,
+      "link": "#"
+    },
+    {
+      "num": "02",
+      "name": "CLI Dev Tool",
+      "tag": "App",
+      "thumbLabel": "terminal screenshot",
+      "desc": "A cross-platform developer utility that automates repetitive setup tasks and scaffolding, saving hours per project.",
+      "stack": ["TypeScript", "Node.js", "CLI"],
+      "link": "#"
+    },
+    {
+      "num": "03",
+      "name": "AI Writing Assistant",
+      "tag": "Tool",
+      "thumbLabel": "tool interface",
+      "desc": "An LLM-powered writing companion with context memory, custom tone presets, and a distraction-free editor.",
+      "stack": ["Python", "OpenAI", "FastAPI"],
+      "link": "#"
+    },
+    {
+      "num": "04",
+      "name": "E-Commerce Engine",
+      "tag": "Web",
+      "thumbLabel": "storefront screenshot",
+      "desc": "A headless commerce solution with custom storefront, checkout optimization, and inventory management built for speed.",
+      "stack": ["Next.js", "Stripe", "Prisma"],
+      "link": "#"
+    },
+    {
+      "num": "05",
+      "name": "Focus Timer App",
+      "tag": "Mobile",
+      "thumbLabel": "app interface",
+      "desc": "A minimalist productivity app with deep work sessions, Pomodoro tracking, and sync across devices.",
+      "stack": ["React Native", "Expo"],
+      "link": "#"
+    }
+  ],
+
+  "blog": [
+    {
+      "date": "Apr 2026",
+      "readTime": "5 min read",
+      "title": "Why Every Developer Should Ship a SaaS in 30 Days",
+      "excerpt": "The constraints of a deadline unlock creativity. Here's what I learned from shipping fast — and what I'd do differently next time.",
+      "link": "#"
+    },
+    {
+      "date": "Mar 2026",
+      "readTime": "8 min read",
+      "title": "Building CLI Tools That Developers Actually Want to Use",
+      "excerpt": "Great developer tools feel invisible. Designing intuitive CLIs is harder than it looks — here's my framework for getting it right.",
+      "link": "#"
+    },
+    {
+      "date": "Feb 2026",
+      "readTime": "6 min read",
+      "title": "The Stack I Reach For on Every New Project in 2026",
+      "excerpt": "After years of trying everything, here's the opinionated tech stack I default to — and exactly why each choice was made.",
+      "link": "#"
+    }
+  ],
+
+  "contact": {
+    "sectionLabel": "Let's Build Together",
+    "title": "Got a project in mind?",
+    "titleAccent": "in mind?",
+    "desc": "Whether it's a product idea, a collaboration, or just a conversation — I'm always open to interesting work.",
+    "ctaText": "Say Hello →",
+    "email": "hello@shubhamad.dev"
+  },
+
+  "footer": {
+    "name": "SD.Folio",
+    "copy": "© 2026 — Built with precision",
+    "links": [
+      { "label": "GitHub",   "href": "https://github.com" },
+      { "label": "Twitter",  "href": "https://twitter.com" },
+      { "label": "LinkedIn", "href": "https://linkedin.com" }
+    ]
+  },
+
+  "tweaks": {
+    "accentColor":   "#ff6a00",
+    "globeSpeed":    0.4,
+    "cardTilt":      true,
+    "particleTrail": true,
+    "frameRate":     60,
+    "pixelCap":      1.5,
+    "satCount":      13,
+    "starCount":     450,
+    "nebula":        true,
+    "scrollLength":  250
+  }
+}

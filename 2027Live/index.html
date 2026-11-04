@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="image" property="og:image" content="headerImage.png">
+<meta name="author" content="Shubahm Arun Dekatey">
+<meta property="article:published_time" content="2026-11-04T12:00:00-05:00">
+<meta name="description" property="og:description" content="Discover how your salary compares across US counties and roles with this interactive wage explorer dashboard &mdash; OFLC wage year 2026&ndash;27 prevailing wage data.">
+<title>US County Wage Explorer &mdash; 2026&ndash;27</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-98DBCMXQXK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-98DBCMXQXK');
+  gtag('config', 'G-59JKD9H0G8');
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=DM+Serif+Display&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0b0e17;
+    --surface: #131722;
+    --surface2: #1a2033;
+    --border: #252d42;
+    --accent: #f0b429;
+    --accent2: #38bdf8;
+    --green: #34d399;
+    --text: #dde3f0;
+    --muted: #5a6580;
+    --font: 'IBM Plex Mono', monospace;
+    --serif: 'DM Serif Display', serif;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); height: 100vh; display: flex; flex-direction: column; overflow: hidden; font-size: 13px; }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  header h1 { font-family: var(--serif); font-size: 1.3rem; color: var(--accent); white-space: nowrap; }
+
+  .filter-group { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 220px; max-width: 420px; }
+  .filter-group label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  #filter-input, #location-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.72rem;
+    padding: 6px 10px;
+    outline: none;
+    width: 100%;
+  }
+  #filter-input:focus, #location-input:focus { border-color: var(--accent); }
+
+  /* Clear button. Shown via :placeholder-shown rather than a JS flag, so it
+     stays right when the value is set in code (selecting an occupation,
+     opening a shared link) and not only when someone types. */
+  #filter-input, #location-input { padding-right: 26px; }
+  .autocomplete-wrap .input-clear {
+    position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+    display: none; background: none; border: none; padding: 2px 5px;
+    color: var(--muted); font-family: var(--font); font-size: 0.95rem;
+    line-height: 1; cursor: pointer;
+  }
+  .autocomplete-wrap input:not(:placeholder-shown) ~ .input-clear { display: block; }
+  .autocomplete-wrap .input-clear:hover { color: var(--accent); }
+
+  .autocomplete-wrap { position: relative; }
+  #autocomplete-list, #location-list {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-top: none;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+  }
+  #autocomplete-list.open, #location-list.open { display: block; }
+  .ac-item {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .ac-item:hover, .ac-item.active { background: var(--accent); color: var(--bg); }
+
+  .metric-group { display: flex; gap: 6px; align-items: center; }
+  .metric-group label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+  .metric-btn, .unit-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 0.65rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .metric-btn.active, .unit-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+  .metric-btn:hover:not(.active), .unit-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
+
+  /* LEGEND */
+  #legend {
+    display: flex; align-items: center; gap: 8px; margin-left: auto;
+    flex-shrink: 0;
+  }
+  #legend-bar {
+    width: 140px; height: 10px;
+    background: linear-gradient(to right, #1e3a5f, #38bdf8, #f0b429, #ef4444);
+    border: 1px solid var(--border);
+  }
+  .legend-labels { display: flex; justify-content: space-between; width: 140px; font-size: 0.6rem; color: var(--muted); }
+  #legend-min, #legend-max { font-size: 0.6rem; color: var(--muted); }
+
+  /* Find-your-county field. Keeps the located county visible at any zoom:
+     the <g> is scaled by d3.zoom, so the stroke has to opt out of scaling. */
+  .county.located {
+    /* White, not the theme amber -- #f0b429 is a stop in the legend gradient,
+       so an amber outline disappears on mid-range counties. */
+    stroke: #fff; stroke-width: 2px; vector-effect: non-scaling-stroke;
+  }
+  #found-county {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    background: rgba(240, 180, 41, 0.07);
+  }
+  #found-county:empty { display: none; }
+  #found-county .fc-name { font-size: 0.82rem; color: #f0b429; font-weight: 600; }
+  #found-county .fc-sub { font-size: 0.6rem; color: var(--muted); margin-top: 2px; }
+  #found-county .fc-wage { font-size: 1.15rem; color: var(--text); margin-top: 6px; font-weight: 600; }
+  #found-county .fc-rank { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+  /* Marks a figure carried over from an earlier wage year. */
+  .yr-tag {
+    display: inline-block; margin-left: 6px; padding: 0 4px;
+    font-size: 0.55rem; letter-spacing: 0.04em; white-space: nowrap;
+    color: var(--accent2); border: 1px solid var(--accent2);
+    border-radius: 2px; vertical-align: middle; font-weight: 400;
+  }
+  #found-county .fc-arc { margin-top: 8px; }
+  #found-county .fc-arc svg { display: block; overflow: visible; }
+  #found-county .fc-arc-cap {
+    font-size: 0.58rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.06em; margin-top: 1px;
+  }
+  #found-county .fc-arc-cap strong { color: var(--accent2); }
+  #found-county .fc-also { font-size: 0.6rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  #found-county .fc-also a { color: var(--accent2); cursor: pointer; text-decoration: underline; }
+  #found-county .fc-clear {
+    float: right; font-size: 0.6rem; color: var(--muted);
+    cursor: pointer; border: none; background: none; padding: 0;
+  }
+  #found-county .fc-clear:hover { color: var(--text); }
+  #location-list .ac-item .ac-soc { text-transform: none; }
+  .loc-error { font-size: 0.6rem; color: #ef4444; padding: 8px 10px; }
+
+  /* Which unit the figures are in. 61 SOC codes are annual, and that reads as
+     a thousandfold jump unless it is called out. */
+  #unit-note {
+    font-size: 0.58rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.08em; min-height: 0.8rem;
+  }
+  #unit-note.annual, .panel-unit.annual, .tt-unit.annual { color: #f0b429; font-weight: 700; }
+  /* A derived figure, not a published one -- distinct from the amber. */
+  #unit-note.converted { color: var(--accent2); }
+  .panel-unit, .tt-unit {
+    font-size: 0.58rem; color: var(--muted); font-weight: 400;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .panel-unit { margin-left: 6px; }
+  #tooltip .tt-unit { display: block; margin: -4px 0 6px; }
+
+  /* MAIN */
+  .main { flex: 1; position: relative; overflow: hidden; display: flex; }
+
+  #map-container { flex: 1; cursor: grab; position: relative; }
+  /* #map-container {  flex: 1;  cursor: grab;  position: relative;  touch-action: none;} */
+  #map-container:active { cursor: grabbing; }
+  svg { width: 100%; height: 100%; display: block; }
+
+  .county { stroke: #1e2840; stroke-width: 0.3; cursor: pointer; transition: opacity 0.1s; }
+  .county:hover { opacity: 0.75; stroke: #fff; stroke-width: 0.6; }
+  .county.no-data { fill: #151c2e; cursor: default; }
+  .state-boundary { fill: none; stroke: #3a4a6a; stroke-width: 0.8; pointer-events: none; }
+
+  /* TOOLTIP */
+  #tooltip {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    padding: 10px 14px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s;
+    z-index: 50;
+    min-width: 200px;
+    line-height: 1.6;
+  }
+  #tooltip.visible { opacity: 1; }
+  #tooltip .tt-county { font-family: var(--serif); font-size: 1rem; color: var(--accent); }
+  #tooltip .tt-state { font-size: 0.65rem; color: var(--muted); margin-bottom: 6px; }
+  #tooltip .tt-title { font-size: 0.68rem; color: var(--accent2); margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+  .tt-row { display: flex; justify-content: space-between; gap: 16px; font-size: 0.7rem; }
+  .tt-row .lbl { color: var(--muted); }
+  .tt-row .val { color: var(--text); font-weight: 600; }
+  .tt-row .val.highlight { color: var(--accent); }
+  #tooltip .tt-nodata { font-size: 0.7rem; color: var(--muted); font-style: italic; }
+
+  /* SIDE PANEL */
+  #side-panel {
+    width: 260px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  #side-panel h3 {
+    font-family: var(--serif);
+    font-size: 0.9rem;
+    color: var(--accent);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  #county-list { flex: 1; overflow-y: auto; }
+  #county-list::-webkit-scrollbar { width: 4px; }
+  #county-list::-webkit-scrollbar-thumb { background: var(--border); }
+  .county-item {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .county-item:hover { background: var(--surface2); }
+  .county-item .ci-name { font-size: 0.72rem; color: var(--text); }
+  .county-item .ci-state { font-size: 0.6rem; color: var(--muted); }
+  .county-item .ci-val { font-size: 0.72rem; color: var(--accent); font-weight: 600; margin-top: 2px; }
+  #no-data-msg { padding: 20px 16px; font-size: 0.72rem; color: var(--muted); text-align: center; }
+
+  /* ZOOM */
+  .zoom-controls { position: absolute; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 2px; z-index: 10; }
+  .zoom-controls button {
+    width: 28px; height: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .zoom-controls button:hover { background: var(--accent); color: var(--bg); }
+
+  #status { position: absolute; bottom: 10px; left: 12px; font-size: 0.62rem; color: var(--muted); }
+
+  #loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg); z-index: 200;
+    flex-direction: column; gap: 14px;
+    font-size: 0.75rem; color: var(--muted); letter-spacing: 0.1em;
+  }
+  .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #load-msg { color: var(--muted); }
+
+  /* DISCLAIMER MODAL */
+  #disclaimer-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.72);
+    z-index: 900;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #disclaimer-box {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    max-width: 520px;
+    width: 90%;
+    padding: 28px 28px 22px;
+    position: relative;
+    box-shadow: 0 0 40px rgba(240,180,41,0.12);
+  }
+  #disclaimer-box h2 {
+    font-family: var(--serif);
+    color: var(--accent);
+    font-size: 1.15rem;
+    margin-bottom: 14px;
+    letter-spacing: 0.02em;
+  }
+  #disclaimer-text {
+    font-size: 0.72rem;
+    color: var(--text);
+    line-height: 1.75;
+    white-space: pre-wrap;
+    margin-bottom: 20px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 0;
+  }
+  #disclaimer-close {
+    background: var(--accent);
+    border: none;
+    color: var(--bg);
+    font-family: var(--font);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 8px 20px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: opacity 0.15s;
+  }
+  #disclaimer-close:hover { opacity: 0.85; }
+
+  /* SOURCE BUTTON */
+  #source-btn {
+    position: fixed;
+    bottom: 14px; right: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 0.6rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    z-index: 80;
+    letter-spacing: 0.06em;
+    transition: all 0.15s;
+  }
+  #source-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* SOURCE MODAL */
+  #source-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 850;
+    display: flex; align-items: center; justify-content: center;
+    display: none;
+  }
+  #source-box {
+    background: var(--surface);
+    border: 1px solid var(--accent2);
+    max-width: 460px;
+    width: 90%;
+    padding: 24px 26px 20px;
+    box-shadow: 0 0 30px rgba(56,189,248,0.1);
+    position: relative;
+  }
+  #source-box h2 { font-family: var(--serif); color: var(--accent2); font-size: 1.1rem; margin-bottom: 12px; }
+  #source-box p { font-size: 0.72rem; color: var(--text); line-height: 1.7; margin-bottom: 10px; }
+  #source-box a { color: var(--accent2); text-decoration: none; }
+  #source-box a:hover { text-decoration: underline; }
+  #source-close {
+    margin-top: 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 0.65rem;
+    padding: 6px 14px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    transition: all 0.15s;
+  }
+  #source-close:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* HELP POPUP */
+  #help-popup {
+    position: fixed;
+    bottom: 50px; right: 16px;
+    background: var(--surface);
+    border: 1px solid var(--accent2);
+    padding: 14px 16px;
+    z-index: 800;
+    max-width: 220px;
+    box-shadow: 0 0 20px rgba(52,211,153,0.12);
+    display: none;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  #help-popup .hp-title {
+    font-family: var(--serif);
+    color: var(--accent2);
+    font-size: 0.88rem;
+    margin-bottom: 8px;
+  }
+  #help-popup p { font-size: 0.68rem; color: var(--text); line-height: 1.6; margin-bottom: 10px; }
+  #help-popup a { color: var(--accent2); font-weight: 600; text-decoration: none; }
+  #help-popup a:hover { text-decoration: underline; }
+  #help-popup .hp-actions { display: flex; gap: 8px; align-items: center; }
+  #help-later {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 0.6rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+  #help-later:hover { border-color: var(--muted); color: var(--text); }
+
+  /* AUTOCOMPLETE SOC CODE */
+  .ac-item .ac-soc { font-size: 0.6rem; color: var(--muted); margin-top: 1px; }
+  .ac-item:hover .ac-soc, .ac-item.active .ac-soc { color: var(--bg); opacity: 0.7; }
+
+  /* ---------- MOBILE / TABLET RESPONSIVE ---------- */
+
+  @media (max-width: 900px) {
+
+    body {
+      overflow: auto;
+      height: auto;
+      font-size: 14px;
+    }
+
+    header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    header h1 {
+      font-size: 1.2rem;
+    }
+
+    .filter-group {
+      max-width: 100%;
+    }
+
+    .metric-group {
+      flex-wrap: wrap;
+    }
+
+    .metric-btn, .unit-btn {
+      font-size: 0.7rem;
+      padding: 6px 8px;
+    }
+
+    #legend {
+      margin-left: 0;
+      justify-content: flex-start;
+    }
+
+    .main {
+      flex-direction: column;
+    }
+
+    /* Stack the map above the county list rather than dropping the list. */
+    #map-container {
+      height: 55vh;
+      flex-shrink: 0;
+    }
+
+    #side-panel {
+      width: 100%;
+      border-left: none;
+      border-top: 1px solid var(--border);
+    }
+
+    #county-list {
+      max-height: 45vh;
+    }
+
+
+    .zoom-controls {
+      top: 8px;
+      left: 8px;
+    }
+
+    /* It sits over the map, so give it a backdrop once it starts wrapping. */
+    #status {
+      font-size: 0.7rem;
+      right: 12px;
+      background: rgba(11, 14, 23, 0.88);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      line-height: 1.35;
+    }
+
+    #source-btn {
+      font-size: 0.7rem;
+      padding: 6px 10px;
+    }
+
+
+  #tooltip {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+
+    width: 100%;
+    max-width: none;
+
+    background: var(--surface);
+    border-top: 1px solid var(--accent);
+    border-left: none;
+    border-right: none;
+
+    padding: 10px 14px;
+
+    max-height: 140px;
+    overflow-y: auto;
+
+    z-index: 500;
+}
+
+}
+  /* Small phones */
+
+  @media (max-width: 480px) {
+
+    header h1 {
+      font-size: 1.05rem;
+    }
+
+    #filter-input, #location-input {
+      font-size: 0.8rem;
+      padding: 8px;
+    }
+
+    .metric-btn, .unit-btn {
+      font-size: 0.65rem;
+    }
+
+    #legend-bar {
+      width: 100px;
+    }
+
+    .legend-labels {
+      width: 100px;
+    }
+
+    #map-container {
+      height: 50vh;
+    }
+
+    #county-list {
+      max-height: 40vh;
+    }
+  }
+
+</style>
+</head>
+<body>
+
+<header>
+  <h1>County Wage Explorer</h1>
+
+  <div class="filter-group">
+    <label>Filter by Occupation</label>
+    <div class="autocomplete-wrap">
+      <input id="filter-input" type="text" placeholder="Type to search occupations..." autocomplete="off" />
+      <button type="button" class="input-clear" id="filter-clear" title="Clear" aria-label="Clear occupation search">&times;</button>
+      <div id="autocomplete-list"></div>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <label>Find Your County</label>
+    <div class="autocomplete-wrap">
+      <input id="location-input" type="text" placeholder="ZIP code or county name..." autocomplete="off" />
+      <button type="button" class="input-clear" id="location-clear" title="Clear" aria-label="Clear county search">&times;</button>
+      <div id="location-list"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:4px;">
+    <label style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Metric</label>
+    <div class="metric-group">
+      <button class="metric-btn" data-metric="l1">Level 1</button>
+      <button class="metric-btn" data-metric="l2">Level 2</button>
+      <button class="metric-btn" data-metric="l3">Level 3</button>
+      <button class="metric-btn" data-metric="l4">Level 4</button>
+      <button class="metric-btn active" data-metric="avg">Average</button>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:4px;">
+    <label style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Show As</label>
+    <div class="metric-group">
+      <button class="unit-btn" data-unit="H">Hourly</button>
+      <button class="unit-btn" data-unit="A">Yearly</button>
+    </div>
+  </div>
+
+  <div id="legend">
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <div id="unit-note"></div>
+      <div id="legend-bar"></div>
+      <div class="legend-labels">
+        <span id="legend-min">$0</span>
+        <span id="legend-max">$200+</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div id="loading">
+    <div class="spinner"></div>
+    <div id="load-msg">LOADING MAP & DATA...</div>
+  </div>
+
+  <div id="map-container">
+    <svg id="svg-map" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="zoom-controls">
+      <button id="btn-zoom-in">+</button>
+      <button id="btn-zoom-out">−</button>
+      <button id="btn-reset" title="Reset">⌂</button>
+    </div>
+    <!-- <div id="status"></div> -->
+    <div id="status">Pinch or drag to explore the map</div>
+  </div>
+
+  <div id="side-panel">
+    <h3 id="panel-title">Select an Occupation</h3>
+    <div id="found-county"></div>
+    <div id="county-list">
+      <div id="no-data-msg">Use the filter above to select an occupation and see county-level data.</div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<!-- DISCLAIMER MODAL -->
+<div id="disclaimer-overlay">
+  <div id="disclaimer-box">
+    <h2>Thank you for visiting.
+      <p>Please Read the following. </h2>
+    <div id="disclaimer-text">Loading disclaimer...</div>
+    <button id="disclaimer-close">I UNDERSTAND &mdash; CONTINUE</button>
+  </div>
+</div>
+
+<!-- SOURCE MODAL -->
+<div id="source-overlay">
+  <div id="source-box">
+    <h2>Data Sources</h2>
+    <p>Wage data is drawn from the <strong>Office of Foreign Labor Certification (OFLC)</strong> prevailing wage database, cross-referenced with <strong>Occupational Employment and Wage Statistics (OEWS)</strong> survey data published by the U.S. Bureau of Labor Statistics. Data files can be found <a href="https://flag.dol.gov/wage-data/wage-data-downloads" target="_blank" rel="noopener noreferrer">here</a>.</p>
+    <p>Geographic boundaries use the <a href="https://github.com/topojson/us-atlas" target="_blank">US Atlas TopoJSON</a> county dataset. Occupation titles follow the <strong>Standard Occupational Classification (SOC)</strong> system.</p>
+    <p style="color:var(--muted);font-size:0.65rem;">Data covers OFLC wage year 2026&ndash;27 (effective July 2026). Some counties may have limited or no coverage for specific occupations.</p>
+    <button id="source-close">CLOSE</button>
+  </div>
+</div>
+
+<!-- SOURCE BUTTON -->
+<button id="source-btn">[ SOURCE ]</button>
+
+<!-- HELP POPUP -->
+<div id="help-popup">
+  <div class="hp-title">Help the Builder</div>
+  <p>Check out the creator's portfolio & other projects.</p>
+  <div class="hp-actions">
+    <a href="http://sdfolio.com" target="_blank">&#8594; sdfolio.com</a>
+    <button id="help-later">Later</button>
+  </div>
+</div>
+
+<script>
+
+
+// Wage year 2026-27. Built by 2027/build_2027.py from OFLC_Wages_2026-27/.
+const GEO_CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/Mobile-Version/2027/Prof_w_linksRearrangeColumn.csv';
+
+// CSV columns: Area(0), SocCode(1), GeoLvl(2), Level1(3), Level2(4), Level3(5), Level4(6), Average(7), AreaName(8), StateAb(9), State(10), CountyTownName(11), OES_SOCTITLE(12), ...
+
+let titleIndex = {}; // title -> [{county, stAb, l1,l2,l3,l4,avg}]
+let countyIndex = {}; // "CountyName|ST" -> {title -> {l1..avg}}
+let titleSocCodeMap = {}; // title -> SocCode
+let TITLES = [];
+let selectedTitle = null;
+let activeMetric = 'avg';
+// 'H' (hourly rate) or 'A' (annual salary), from the occupation index. 61 of
+// the 848 SOC codes are published as annual salaries, and the figures alone
+// give no hint -- an $87.04 and a $236,770 look alike without a suffix.
+let activeUnit = 'H';
+// What the viewer asked to see, which may not be what OFLC published:
+// null = as published, 'H' = hourly, 'A' = yearly. A converted figure is
+// always labelled, because it is arithmetic rather than a published wage.
+let userUnitPref = null;
+// OFLC's own convention for moving between the two (40 h/week x 52 weeks).
+const HOURS_PER_YEAR = 2080;
+let currentData = {};
+
+// Last year's wages for the cells OFLC left blank this year. Keyed
+// "SocCode|Area"; the page expands Area to counties itself, so this is 1,168
+// rows and 14 KB rather than 6,601 county rows.
+const FALLBACK_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/Mobile-Version/2027/fallback_2025_26.csv.gz';
+const fallbackIndex = new Map();
+
+async function loadFallback() {
+  try {
+    const text = await fetchCsvText(FALLBACK_URL);
+    const lines = text.split('\n');
+    for (let i = 1; i < lines.length; i++) {
+      const f = lines[i].split(',');
+      if (f.length < 8) continue;
+      fallbackIndex.set(f[0] + '|' + f[1], {
+        l1: +f[2] || 0, l2: +f[3] || 0, l3: +f[4] || 0,
+        l4: +f[5] || 0, avg: +f[6] || 0, year: f[7].trim()
+      });
+    }
+  } catch (err) {
+    // Not fatal: without it those counties simply stay blank, as before.
+    console.warn('fallback wages unavailable:', err.message);
+  }
+}
+
+// Tag shown beside a county name whose figure came from an earlier wage year.
+function yearTag(row) {
+  if (!row || !row.year) return '';
+  return `<span class="yr-tag" title="No 2026-27 wage published here; showing the ${row.year} figure">${row.year}</span>`;
+}
+
+let geoIndex = {};       // occupation -> {soccode, filename, url}
+const csvCache = new Map(); // csv url -> {titleIndex, countyIndex}
+let OCCUPATIONS = [];    // list for autocomplete
+
+
+// Split one CSV line, honouring quoted fields that contain commas.
+function parseCsvLine(line) {
+  const fields = [];
+  let current = '';
+  let inQuotes = false;
+  for (let j = 0; j < line.length; j++) {
+    const ch = line[j];
+    if (inQuotes) {
+      if (ch === '"' && line[j + 1] === '"') { current += '"'; j++; }
+      else if (ch === '"') { inQuotes = false; }
+      else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { fields.push(current.trim()); current = ''; }
+      else { current += ch; }
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
+// Per-occupation files are stored gzipped; GitHub serves LFS content with no
+// content-encoding, so we inflate them ourselves.
+async function fetchCsvText(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to fetch CSV: ' + response.status);
+  if (!url.endsWith('.gz')) return response.text();
+
+  if (typeof DecompressionStream === 'function') {
+    const stream = response.body.pipeThrough(new DecompressionStream('gzip'));
+    return new Response(stream).text();
+  }
+  // Older browsers without DecompressionStream.
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js');
+  return pako.inflate(new Uint8Array(await response.arrayBuffer()), { to: 'string' });
+}
+
+async function loadGeoCSV() {
+
+  const text = await fetchCsvText(GEO_CSV_URL);
+  const lines = text.split('\n');
+
+  for (let i = 1; i < lines.length; i++) {
+
+    const row = lines[i].trim();
+    if (!row) continue;
+
+    const cols = parseCsvLine(row);
+
+    const soccode = cols[0];
+    const soctitle = cols[1];
+    const onetcode = cols[3];
+    const occupation = cols[4];
+    const filename = cols[5];
+    const url = cols[6];
+    const category = cols[7];
+    // 'A' for the 61 SOC codes OFLC reports as annual salaries, else 'H'.
+    const unit = cols[8] === 'A' ? 'A' : 'H';
+
+    geoIndex[occupation] = {
+      soccode,
+      soctitle,
+      onetcode,
+      filename,
+      url,
+      category,
+      unit
+    };
+
+    OCCUPATIONS.push(occupation);
+  }
+
+  OCCUPATIONS.sort();
+}
+
+async function loadCSVData(csvUrl) {
+  const text = await fetchCsvText(csvUrl);
+  const lines = text.split('\n');
+  const titleSet = new Set();
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    const fields = parseCsvLine(line);
+
+    if (fields.length < 13) continue;
+
+    const county = fields[11];
+    const stAb   = fields[9];
+
+    const oesTitle = fields[13];
+    const onetTitle = fields[16];
+
+    const title = onetTitle || oesTitle;
+    const socCode = fields[1];
+
+    const l1     = fields[3];
+    const l2     = fields[4];
+    const l3     = fields[5];
+    const l4     = fields[6];
+    const avg    = fields[7];
+
+    // Skip header row
+    if (i === 0 && (county.toLowerCase() === 'countytownname' || l1.toLowerCase() === 'level1')) continue;
+
+    titleSet.add(title);
+    if (!titleSocCodeMap[title]) titleSocCodeMap[title] = socCode;
+    const key = county + '|' + stAb;
+    if (!titleIndex[title]) titleIndex[title] = [];
+
+    // OFLC publishes no figure at all for ~1,759 cells this year ('High Wage'
+    // above the OES cap, or 'No Leveled Wage'). Where last year had one, use
+    // it and carry the wage year so the UI can label it.
+    let v = { l1: +l1 || 0, l2: +l2 || 0, l3: +l3 || 0, l4: +l4 || 0, avg: +avg || 0, year: '' };
+    if (!v.avg && !v.l1 && !v.l2 && !v.l3 && !v.l4) {
+      const prev = fallbackIndex.get(socCode + '|' + fields[0]);
+      if (prev) v = prev;
+    }
+
+    titleIndex[title].push({
+  county,
+  stAb,
+  l1: v.l1,
+  l2: v.l2,
+  l3: v.l3,
+  l4: v.l4,
+  avg: v.avg,
+  year: v.year,
+  onetTitle,
+  oesTitle
+});
+    if (!countyIndex[key]) countyIndex[key] = {};
+    countyIndex[key][title] = {
+  l1: v.l1,
+  l2: v.l2,
+  l3: v.l3,
+  l4: v.l4,
+  avg: v.avg,
+  year: v.year,
+  onetTitle,
+  oesTitle
+};
+  }
+
+  TITLES = [...titleSet].sort();
+}
+
+// Color scale
+function valueToColor(val, min, max) {
+  if (val === null || val === undefined) return '#151c2e';
+  const t = Math.min(1, Math.max(0, (val - min) / (max - min || 1)));
+  // blue -> cyan -> yellow -> red
+  if (t < 0.33) {
+    const s = t / 0.33;
+    return lerpColor('#1e3a5f', '#38bdf8', s);
+  } else if (t < 0.66) {
+    const s = (t - 0.33) / 0.33;
+    return lerpColor('#38bdf8', '#f0b429', s);
+  } else {
+    const s = (t - 0.66) / 0.34;
+    return lerpColor('#f0b429', '#ef4444', s);
+  }
+}
+
+function lerpColor(a, b, t) {
+  const ah = parseInt(a.slice(1), 16);
+  const bh = parseInt(b.slice(1), 16);
+  const ar = (ah>>16)&0xff, ag = (ah>>8)&0xff, ab = ah&0xff;
+  const br = (bh>>16)&0xff, bg = (bh>>8)&0xff, bb = bh&0xff;
+  const r = Math.round(ar + (br-ar)*t);
+  const g = Math.round(ag + (bg-ag)*t);
+  const bl2 = Math.round(ab + (bb-ab)*t);
+  return '#' + [r,g,bl2].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+// Annual salaries get thousands separators and no cents -- "$236,770" rather
+// than "$236770.00". fmtNum is for dense rows that already state the unit in
+// their heading; fmt carries the suffix for figures that stand on their own.
+function displayUnit() { return userUnitPref || activeUnit; }
+function isConverted() { return displayUnit() !== activeUnit; }
+
+// Values are stored as published; only the display is converted. The map
+// colours, sorting and ranks all use the raw numbers, and since the
+// conversion is a single constant factor none of them change.
+function toDisplay(v) {
+  if (!isConverted()) return v;
+  return displayUnit() === 'A' ? v * HOURS_PER_YEAR : v / HOURS_PER_YEAR;
+}
+
+function fmtNum(v) {
+  if (!v) return 'N/A';
+  const x = toDisplay(v);
+  return displayUnit() === 'A'
+    ? '$' + Math.round(x).toLocaleString('en-US')
+    : '$' + x.toFixed(2);
+}
+function fmt(v) { return v ? fmtNum(v) + unitSuffix() : 'N/A'; }
+function unitSuffix() { return displayUnit() === 'A' ? '/yr' : '/hr'; }
+function unitWords() {
+  return (displayUnit() === 'A' ? 'per year' : 'per hour') +
+         (isConverted() ? ' (converted)' : '');
+}
+
+function syncUnitButtons() {
+  const shown = displayUnit();
+  document.querySelectorAll('.unit-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.unit === shown));
+}
+
+// Annual is the surprising case, so say so loudly rather than relying on
+// "/yr" -- and never let a converted figure pass as a published one.
+function updateUnitNote() {
+  const note = document.getElementById('unit-note');
+  if (!note) return;
+  if (!selectedTitle) { note.textContent = ''; note.className = ''; return; }
+  if (isConverted()) {
+    note.textContent = (displayUnit() === 'A' ? 'converted to yearly' : 'converted to hourly')
+      + ' @ 2,080 h';
+    note.className = 'converted';
+  } else {
+    note.textContent = activeUnit === 'A' ? 'ANNUAL SALARY' : 'Hourly rate';
+    note.className = activeUnit === 'A' ? 'annual' : '';
+  }
+}
+</script>
+
+<script>
+// Load D3 and TopoJSON, then render map
+function loadScript(src) {
+  return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+}
+
+async function init() {
+  document.getElementById('load-msg').textContent = 'LOADING LIBRARIES...';
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js');
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js');
+  // document.getElementById('load-msg').textContent = 'LOADING CSV DATA...';
+  // await loadCSVData();
+  document.getElementById('load-msg').textContent = 'LOADING OCCUPATION INDEX...';
+  await Promise.all([loadGeoCSV(), loadFallback()]);
+  document.getElementById('load-msg').textContent = 'LOADING MAP TOPOLOGY...';
+  const us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-albers-10m.json');
+  document.getElementById('loading').style.display = 'none';
+
+  // Build FIPS -> county/state name lookup from topojson
+  const counties = topojson.feature(us, us.objects.counties);
+  const states = topojson.feature(us, us.objects.states);
+  const stateMesh = topojson.mesh(us, us.objects.states, (a,b)=>a!==b);
+
+  // State FIPS -> abbreviation
+  const STATE_AB = {
+    "01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA","08":"CO","09":"CT","10":"DE",
+    "11":"DC","12":"FL","13":"GA","15":"HI","16":"ID","17":"IL","18":"IN","19":"IA",
+    "20":"KS","21":"KY","22":"LA","23":"ME","24":"MD","25":"MA","26":"MI","27":"MN",
+    "28":"MS","29":"MO","30":"MT","31":"NE","32":"NV","33":"NH","34":"NJ","35":"NM",
+    "36":"NY","37":"NC","38":"ND","39":"OH","40":"OK","41":"OR","42":"PA","44":"RI",
+    "45":"SC","46":"SD","47":"TN","48":"TX","49":"UT","50":"VT","51":"VA","53":"WA",
+    "54":"WV","55":"WI","56":"WY","72":"PR","78":"VI"
+  };
+  const STATE_NAMES = {
+    "01":"Alabama","02":"Alaska","04":"Arizona","05":"Arkansas","06":"California",
+    "08":"Colorado","09":"Connecticut","10":"Delaware","11":"District of Columbia",
+    "12":"Florida","13":"Georgia","15":"Hawaii","16":"Idaho","17":"Illinois","18":"Indiana",
+    "19":"Iowa","20":"Kansas","21":"Kentucky","22":"Louisiana","23":"Maine","24":"Maryland",
+    "25":"Massachusetts","26":"Michigan","27":"Minnesota","28":"Mississippi","29":"Missouri",
+    "30":"Montana","31":"Nebraska","32":"Nevada","33":"New Hampshire","34":"New Jersey",
+    "35":"New Mexico","36":"New York","37":"North Carolina","38":"North Dakota","39":"Ohio",
+    "40":"Oklahoma","41":"Oregon","42":"Pennsylvania","44":"Rhode Island","45":"South Carolina",
+    "46":"South Dakota","47":"Tennessee","48":"Texas","49":"Utah","50":"Vermont","51":"Virginia",
+    "53":"Washington","54":"West Virginia","55":"Wisconsin","56":"Wyoming","72":"Puerto Rico","78":"U.S. Virgin Islands"
+  };
+
+  // FIPS -> {name, stAb, stateName}
+  const fipsInfo = {};
+  counties.features.forEach(f => {
+    const fips = String(f.id).padStart(5,'0');
+    const sfips = fips.slice(0,2);
+    fipsInfo[fips] = {
+      name: f.properties.name,
+      stAb: STATE_AB[sfips] || '',
+      stateName: STATE_NAMES[sfips] || ''
+    };
+  });
+
+  // Build reverse lookup: "CountyName|ST" -> fips (try multiple county name forms)
+  const nameFipsMap = {};
+  counties.features.forEach(f => {
+    const fips = String(f.id).padStart(5,'0');
+    const sfips = fips.slice(0,2);
+    const stAb = STATE_AB[sfips] || '';
+    const baseName = f.properties.name;
+    // Store plain name
+    nameFipsMap[baseName + '|' + stAb] = fips;
+    // With "County" suffix
+    nameFipsMap[baseName + ' County|' + stAb] = fips;
+    nameFipsMap[baseName + ' Parish|' + stAb] = fips;
+    nameFipsMap[baseName + ' Borough|' + stAb] = fips;
+    nameFipsMap[baseName + ' Census Area|' + stAb] = fips;
+    nameFipsMap[baseName + ' Municipality|' + stAb] = fips;
+    nameFipsMap[baseName.toUpperCase() + '|' + stAb] = fips;
+  });
+
+  // Accents differ between the two sources: the map says "Doña Ana", OFLC
+  // says "Dona Ana County". Compare with the marks removed.
+  const fold = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  Object.keys(nameFipsMap).forEach(k => {
+    const f = fold(k);
+    if (f !== k && !nameFipsMap[f]) nameFipsMap[f] = nameFipsMap[k];
+  });
+
+  // Places the 2020 county geometry cannot name on its own.
+  //
+  // Connecticut retired its 8 counties in 2022 and the Census Bureau replaced
+  // them with 9 planning regions, which is what OFLC now publishes. The map
+  // is 2020 vintage, so each region is drawn on the old county it covers most
+  // of -- worked out from where all 169 CT towns landed in each vintage
+  // (joined on their stable ANSI codes, weighted by land area). Shares run
+  // from 61% to 100%, so edges are approximate. Greater Bridgeport and
+  // Naugatuck Valley never dominate any old county and so are not drawn;
+  // Greater Bridgeport shares its wage area with Western Connecticut, which
+  // is, but Naugatuck Valley's Waterbury-Shelton area has no home on this map.
+  //
+  // Alaska split Valdez-Cordova into Chugach and Copper River in 2019; both
+  // fall back onto the old shape.
+  const COUNTY_ALIASES = {
+    'Capitol Planning Region|CT': ['09003', '09013'],
+    'Lower Connecticut River Valley Planning Region|CT': ['09007'],
+    'Northeastern Connecticut Planning Region|CT': ['09015'],
+    'Northwest Hills Planning Region|CT': ['09005'],
+    'South Central Connecticut Planning Region|CT': ['09009'],
+    'Southeastern Connecticut Planning Region|CT': ['09011'],
+    'Western Connecticut Planning Region|CT': ['09001'],
+    'Chugach Census Area|AK': ['02261'],
+    'Copper River Census Area|AK': ['02261']
+  };
+
+  // One data row can cover more than one shape on the map, so this returns a
+  // list rather than a single FIPS.
+  function resolveCountyFipsList(county, stAb) {
+    const alias = COUNTY_ALIASES[county + '|' + stAb];
+    if (alias) return alias;
+
+    const tries = [county];
+    // " City and Borough" covers Juneau, Sitka, Wrangell and Yakutat.
+    const stripped = county
+      .replace(/ City and Borough$| County$| Parish$| Borough$| Census Area$| Municipality$| Municipio$| city$| City$/, '')
+      .trim();
+    tries.push(stripped, stripped + ' County', stripped + ' Parish');
+
+    for (const t of tries) {
+      const hit = nameFipsMap[t + '|' + stAb] || nameFipsMap[fold(t) + '|' + stAb];
+      if (hit) return [hit];
+    }
+    return [];
+  }
+
+  function resolveCountyFips(county, stAb) {
+    const list = resolveCountyFipsList(county, stAb);
+    return list.length ? list[0] : null;
+  }
+
+  // SVG setup
+  const svg = d3.select('#svg-map');
+  const g = svg.append('g');
+  const path = d3.geoPath();
+
+  const countyPaths = g.selectAll('.county')
+    .data(counties.features)
+    .join('path')
+    .attr('class', 'county no-data')
+    .attr('d', path)
+    .attr('fill', '#151c2e');
+
+  g.append('path').datum(stateMesh).attr('class','state-boundary').attr('d',path);
+
+  // Zoom
+  const zoom = d3.zoom().scaleExtent([1,20]).on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoom);
+  document.getElementById('btn-zoom-in').onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1.6);
+  document.getElementById('btn-zoom-out').onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1/1.6);
+  document.getElementById('btn-reset').onclick = () => svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+
+  // ---- FIND YOUR COUNTY ----
+  // Most people know their ZIP and not their county -- Brooklyn is Kings
+  // County and nothing on this page ever said so. One field takes either, so
+  // there is no second box to guess between.
+  const ZIP_CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/Mobile-Version/2027/zip_county.csv.gz';
+  const METRIC_NAMES = {l1:'Level 1', l2:'Level 2', l3:'Level 3', l4:'Level 4', avg:'Average'};
+
+  const featureByFips = {};
+  counties.features.forEach(f => { featureByFips[String(f.id).padStart(5,'0')] = f; });
+
+  // The county names already arrived with the map topology, so name search
+  // costs no extra download -- only the ZIP crosswalk does.
+  const COUNTY_CHOICES = Object.keys(fipsInfo).map(fips => ({
+    fips,
+    label: fipsInfo[fips].name + ', ' + fipsInfo[fips].stAb,
+    sub: fipsInfo[fips].stateName,
+    key: (fipsInfo[fips].name + ' ' + fipsInfo[fips].stAb + ' ' +
+          fipsInfo[fips].stateName).toLowerCase()
+  })).sort((a, b) => a.label.localeCompare(b.label));
+
+  // ~106 KB, and most visits never touch it, so fetch on first use.
+  let zipIndex = null;
+  async function loadZipIndex() {
+    if (zipIndex) return zipIndex;
+    const text = await fetchCsvText(ZIP_CSV_URL);
+    const map = new Map();
+    const lines = text.split('\n');
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i]) continue;
+      const [zip, fips, also] = lines[i].split(',');
+      if (!zip) continue;
+      map.set(zip, { fips, also: (also || '').trim().split(' ').filter(Boolean) });
+    }
+    zipIndex = map;
+    return zipIndex;
+  }
+
+  let locatedFips = null;
+  let locatedVia = '';     // the ZIP typed, when that is how we got here
+  let lastFipsVal = {};    // whatever updateMap last painted, for the rank
+  let lastFipsRow = {};    // the full l1..l4 row, for the career arc
+
+  // Levels 1-4 are not four filters, they are an entry-to-expert progression
+  // (OFLC's experience tiers). Drawn as one line, the gap between starting
+  // and senior pay in this county is readable at a glance -- it runs from
+  // 1.0x to 9.3x depending on the occupation.
+  function levelArcSvg(row) {
+    const vals = ['l1', 'l2', 'l3', 'l4'].map(k => row[k]);
+    if (!vals.every(v => v > 0)) return '';
+
+    const W = 236, H = 62, padX = 16, topY = 20, botY = 44;
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const span = hi - lo || 1;
+    const pts = vals.map((v, i) => [
+      padX + i * (W - padX * 2) / 3,
+      botY - (v - lo) / span * (botY - topY)
+    ]);
+
+    const active = ['l1', 'l2', 'l3', 'l4'].indexOf(activeMetric);
+    const dots = pts.map(([x, y], i) => {
+      const on = i === active;
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${on ? 4 : 2.6}"
+        fill="${on ? 'var(--accent)' : 'var(--accent2)'}"
+        stroke="var(--surface)" stroke-width="${on ? 1.5 : 0}"/>`;
+    }).join('');
+
+    const ticks = pts.map(([x], i) =>
+      `<text x="${x.toFixed(1)}" y="${H - 3}" text-anchor="middle"
+        fill="${i === active ? 'var(--accent)' : 'var(--muted)'}"
+        font-size="8">L${i + 1}</text>`).join('');
+
+    return `
+      <div class="fc-arc">
+        <svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img"
+             aria-label="Wage by experience level, Level 1 through Level 4">
+          <polyline points="${pts.map(p => p.map(n => n.toFixed(1)).join(',')).join(' ')}"
+                    fill="none" stroke="var(--accent2)" stroke-width="1.6"
+                    stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>
+          ${dots}${ticks}
+          <text x="${padX}" y="12" fill="var(--muted)" font-size="8.5">${fmtNum(vals[0])}</text>
+          <text x="${W - padX}" y="12" text-anchor="end" fill="var(--text)"
+                font-size="8.5">${fmtNum(vals[3])}</text>
+        </svg>
+        <div class="fc-arc-cap">entry &rarr; senior &middot;
+          <strong>${(vals[3] / vals[0]).toFixed(2)}&times;</strong></div>
+      </div>`;
+  }
+
+  function zoomToFips(fips) {
+    const feat = featureByFips[fips];
+    if (!feat) return;
+    const [[x0, y0], [x1, y1]] = path.bounds(feat);
+    const W = 960, H = 600;   // the svg viewBox, not CSS pixels
+    // Aim for the county filling ~30% of the frame, so its neighbours stay
+    // visible for comparison. Capped below d3.zoom's own scaleExtent of 20.
+    const k = Math.max(1, Math.min(16, 0.3 / Math.max((x1 - x0) / W, (y1 - y0) / H)));
+    svg.transition().duration(750).call(zoom.transform,
+      d3.zoomIdentity.translate(W / 2, H / 2).scale(k)
+        .translate(-(x0 + x1) / 2, -(y0 + y1) / 2));
+  }
+
+  function goToCounty(fips, via, pushUrl = true) {
+    if (!featureByFips[fips]) return;
+    locatedFips = fips;
+    locatedVia = via || '';
+    const match = d => String(d.id).padStart(5, '0') === fips;
+    countyPaths.classed('located', match);
+    // SVG has no z-index, so draw it last to keep its outline unbroken.
+    countyPaths.filter(match).raise();
+    zoomToFips(fips);
+    renderFoundCounty();
+    if (pushUrl) writeUrlState(false);
+  }
+
+  function clearCounty(pushUrl = true) {
+    locatedFips = null;
+    locatedVia = '';
+    countyPaths.classed('located', false);
+    document.getElementById('location-input').value = '';
+    renderFoundCounty();
+    if (pushUrl) writeUrlState(false);
+  }
+
+  function renderFoundCounty() {
+    const box = document.getElementById('found-county');
+    if (!locatedFips || !fipsInfo[locatedFips]) { box.innerHTML = ''; return; }
+    const info = fipsInfo[locatedFips];
+    const val = lastFipsVal[locatedFips];
+
+    let wage, rank = '';
+    if (!selectedTitle) {
+      wage = '<div class="fc-sub">Pick an occupation to see its wage here.</div>';
+    } else if (!(val > 0)) {
+      wage = '<div class="fc-sub">No wage published here for this occupation.</div>';
+    } else {
+      const all = Object.values(lastFipsVal).filter(v => v > 0).sort((a, b) => b - a);
+      wage = `<div class="fc-wage">${fmt(val)}</div>`;
+      rank = `<div class="fc-rank">${METRIC_NAMES[activeMetric]} &middot; ranks ` +
+             `${(all.indexOf(val) + 1).toLocaleString()} of ` +
+             `${all.length.toLocaleString()} counties</div>`;
+      if (lastFipsRow[locatedFips]) rank += levelArcSvg(lastFipsRow[locatedFips]);
+    }
+
+    // A ZIP that genuinely straddles counties should say so rather than
+    // silently picking one.
+    let also = '';
+    const extra = locatedVia && zipIndex && zipIndex.get(locatedVia);
+    if (extra) {
+      // Every county the ZIP covers except the one already being shown.
+      const links = [extra.fips].concat(extra.also)
+        .filter(f => f !== locatedFips && fipsInfo[f])
+        .map(f => `<a data-fips="${f}">${fipsInfo[f].name}, ${fipsInfo[f].stAb}</a>`)
+        .join(', ');
+      if (links) also = `<div class="fc-also">ZIP ${locatedVia} also reaches ${links}.</div>`;
+    }
+
+    box.innerHTML =
+      '<button class="fc-clear">clear</button>' +
+      `<div class="fc-name">${info.name}, ${info.stAb}${yearTag(lastFipsRow[locatedFips])}</div>` +
+      `<div class="fc-sub">${locatedVia ? 'ZIP ' + locatedVia + ' &middot; ' : ''}${info.stateName}</div>` +
+      wage + rank + also;
+
+    box.querySelector('.fc-clear').addEventListener('click', () => clearCounty());
+    box.querySelectorAll('.fc-also a').forEach(a =>
+      a.addEventListener('click', () => goToCounty(a.dataset.fips, locatedVia)));
+  }
+
+  const locInput = document.getElementById('location-input');
+  const locList = document.getElementById('location-list');
+  let locIndex = -1;
+
+  function renderLocList(items) {
+    if (!items.length) {
+      locList.innerHTML = '<div class="loc-error">No county matches that name.</div>';
+      locList.classList.add('open');
+      return;
+    }
+    locList.innerHTML = items.slice(0, 20).map(c =>
+      `<div class="ac-item" data-fips="${c.fips}">
+         <div>${c.label}</div>
+         <div class="ac-soc">${c.sub}</div>
+       </div>`).join('');
+    locList.classList.add('open');
+    locIndex = -1;
+    locList.querySelectorAll('.ac-item').forEach(el => {
+      el.addEventListener('mousedown', e => { e.preventDefault(); pickLoc(el); });
+    });
+  }
+
+  function pickLoc(el) {
+    locInput.value = el.querySelector('div').textContent;
+    locList.classList.remove('open');
+    goToCounty(el.dataset.fips, '');
+  }
+
+  async function resolveZip(zip) {
+    locList.innerHTML = '<div class="ac-item">Loading ZIP codes&hellip;</div>';
+    locList.classList.add('open');
+    let idx;
+    try {
+      idx = await loadZipIndex();
+    } catch (err) {
+      locList.innerHTML = '<div class="loc-error">Could not load the ZIP lookup.</div>';
+      return;
+    }
+    if (locInput.value.trim() !== zip) return;   // they kept typing
+    const hit = idx.get(zip);
+    if (!hit || !fipsInfo[hit.fips]) {
+      locList.innerHTML = '<div class="loc-error">No county mapped to ZIP ' + zip +
+        '. PO-box-only ZIPs have no area &mdash; try a nearby street ZIP, ' +
+        'or type the county name.</div>';
+      return;
+    }
+    locList.classList.remove('open');
+    goToCounty(hit.fips, zip);
+  }
+
+  locInput.addEventListener('input', () => {
+    const q = locInput.value.trim();
+    if (!q) { locList.classList.remove('open'); return; }
+    if (/^\d{5}$/.test(q)) { resolveZip(q); return; }
+    if (/^\d+$/.test(q)) { locList.classList.remove('open'); return; }  // partial ZIP
+    const needle = q.toLowerCase();
+    const starts = [], contains = [];
+    COUNTY_CHOICES.forEach(c => {
+      const at = c.key.indexOf(needle);
+      if (at === 0) starts.push(c);
+      else if (at > 0) contains.push(c);
+    });
+    renderLocList(starts.concat(contains));
+  });
+
+  locInput.addEventListener('keydown', e => {
+    const items = locList.querySelectorAll('.ac-item[data-fips]');
+    if (e.key === 'ArrowDown') {
+      locIndex = Math.min(locIndex + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('active', i === locIndex));
+      e.preventDefault();
+    } else if (e.key === 'ArrowUp') {
+      locIndex = Math.max(locIndex - 1, 0);
+      items.forEach((el, i) => el.classList.toggle('active', i === locIndex));
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      const q = locInput.value.trim();
+      if (locIndex >= 0 && items[locIndex]) pickLoc(items[locIndex]);
+      else if (/^\d{5}$/.test(q)) resolveZip(q);
+      else if (items.length) pickLoc(items[0]);
+    } else if (e.key === 'Escape') {
+      locList.classList.remove('open');
+    }
+  });
+
+  // Tooltip
+  const tooltip = document.getElementById('tooltip');
+  function showTip(event, fips) {
+    const info = fipsInfo[fips];
+    if (!info) return;
+    // Rebuilding a "<name> County|ST" key only works where the map's name and
+    // OFLC's happen to agree -- it misses every parish and borough, and all of
+    // Connecticut. updateMap has already matched a row to this exact shape, so
+    // use that.
+    const tdata = selectedTitle ? (lastFipsRow[fips] || null) : null;
+
+    let html = `<div class="tt-county">${info.name}${yearTag(tdata)}</div>
+      <div class="tt-state">${info.stateName} (${info.stAb})</div>`;
+
+    if (selectedTitle) {
+      html += `<div class="tt-title">${selectedTitle}</div>`;
+      if (tdata) {
+        html += `<div class="tt-unit${activeUnit==='A'?' annual':''}">${unitWords()}</div>`;
+        const metricLabels = {l1:'Level 1', l2:'Level 2', l3:'Level 3', l4:'Level 4', avg:'Average'};
+        ['l1','l2','l3','l4','avg'].forEach(m => {
+          const v = tdata[m];
+          html += `<div class="tt-row"><span class="lbl">${metricLabels[m]}</span><span class="val${m===activeMetric?' highlight':''}">${fmtNum(v)}</span></div>`;
+        });
+      } else {
+        html += `<div class="tt-nodata">No data for this occupation</div>`;
+      }
+    } else {
+      html += `<div class="tt-nodata">Select an occupation to view wages</div>`;
+    }
+
+    tooltip.innerHTML = html;
+    tooltip.classList.add('visible');
+    moveTip(event);
+  }
+
+  function moveTip(event) {
+    const main = document.querySelector('.main').getBoundingClientRect();
+    let x = event.clientX - main.left + 14;
+    let y = event.clientY - main.top - 10;
+    if (x + 240 > main.width - 280) x -= 260;
+    if (y + 160 > main.height) y -= 170;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  }
+
+
+  countyPaths
+  .on('mouseover', function(event, d) {
+    const fips = String(d.id).padStart(5,'0');
+    showTip(event, fips);
+  })
+  .on('mousemove', moveTip)
+  .on('mouseout', () => tooltip.classList.remove('visible'))
+
+  // Touch support for phones
+  .on('touchstart', function(event, d) {
+    const touch = event.touches[0];
+    const fakeEvent = {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    };
+    const fips = String(d.id).padStart(5,'0');
+    showTip(fakeEvent, fips);
+  })
+  .on('touchmove', function(event) {
+    const touch = event.touches[0];
+    moveTip({
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    });
+  })
+  // .on('touchend', () => tooltip.classList.remove('visible'));
+
+  // ---- UPDATE MAP ----
+  function updateMap() {
+    updateUnitNote();
+    syncUnitButtons();
+    if (!selectedTitle) {
+      countyPaths.attr('fill','#151c2e').classed('no-data', true);
+      document.getElementById('legend-min').textContent = '$0';
+      document.getElementById('legend-max').textContent = '--';
+      lastFipsVal = {};
+      renderFoundCounty();
+      return;
+    }
+
+    const rows = titleIndex[selectedTitle] || [];
+    // Build fips -> value
+    const fipsVal = {};
+    const fipsRow = {};
+    rows.forEach(r => {
+      resolveCountyFipsList(r.county, r.stAb).forEach(fips => {
+        fipsVal[fips] = r[activeMetric];
+        fipsRow[fips] = r;
+      });
+    });
+    lastFipsRow = fipsRow;   // all four levels, for the career arc
+
+    const vals = Object.values(fipsVal).filter(v => v > 0);
+    const minVal = vals.length ? Math.min(...vals) : 0;
+    const maxVal = vals.length ? Math.max(...vals) : 100;
+
+    document.getElementById('legend-min').textContent = fmt(minVal);
+    document.getElementById('legend-max').textContent = fmt(maxVal);
+
+    countyPaths.each(function(d) {
+      const fips = String(d.id).padStart(5,'0');
+      const val = fipsVal[fips];
+      const el = d3.select(this);
+      if (val !== undefined && val > 0) {
+        el.attr('fill', valueToColor(val, minVal, maxVal)).classed('no-data', false);
+      } else {
+        el.attr('fill','#151c2e').classed('no-data', true);
+      }
+    });
+
+    // document.getElementById('status').textContent =
+    //   `Showing ${Object.keys(fipsVal).length} counties for "${selectedTitle}"`;
+
+    document.getElementById('status').textContent =
+  `Showing ${Object.keys(fipsVal).length} counties for "${selectedTitle}" • Pinch or use buttons to zoom`;
+
+    // Update side panel
+    lastFipsVal = fipsVal;
+    updatePanel(rows, minVal, maxVal);
+    renderFoundCounty();
+  }
+
+  function updatePanel(rows, minVal, maxVal) {
+    const panel = document.getElementById('county-list');
+    const title = document.getElementById('panel-title');
+
+    if (!rows || rows.length === 0) {
+      title.textContent = 'No Data';
+      panel.innerHTML = '<div id="no-data-msg">No county data for this occupation.</div>';
+      return;
+    }
+
+    const sorted = [...rows].sort((a,b) => b[activeMetric] - a[activeMetric]);
+    // title.textContent = `Top Counties (${sorted.length})`;
+    // The unit belongs here rather than on all five figures in every row.
+    title.innerHTML = `Top Counties <span class="panel-unit${activeUnit==='A'?' annual':''}">${unitWords()}</span>`;
+
+    const metricLabels = {l1:'Lvl1', l2:'Lvl2', l3:'Lvl3', l4:'Lvl4', avg:'Avg'};
+    panel.innerHTML = sorted.map(r => `
+      <div class="county-item">
+        <div class="ci-name">${r.county}${yearTag(r)}</div>
+        <div class="ci-state">${r.stAb}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+          ${['l1','l2','l3','l4','avg'].map(m =>
+            `<span style="font-size:0.62rem;color:${m===activeMetric?'var(--accent)':'var(--muted)'}">
+              ${metricLabels[m]}: <strong style="color:${m===activeMetric?'var(--accent)':'var(--text)'}">${fmtNum(r[m])}</strong>
+            </span>`
+          ).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ---- AUTOCOMPLETE ----
+  const input = document.getElementById('filter-input');
+  // acList = input.includes(';') ? input.replaceAll(';', ',') : input;
+  const acList = document.getElementById('autocomplete-list');
+  // acList = acList.includes(';') ? acList.replaceAll(';', ',') : acList;
+  let acIndex = -1;
+
+  function renderAC(items) {
+      if (items.length === 0) { acList.classList.remove('open'); return; }
+      acList.innerHTML = items.slice(0,30).map(t => {
+        const soc = geoIndex[t].onetcode;
+        const title = geoIndex[t].category;
+        return `<div class="ac-item" data-title="${t.replace(/"/g,'&quot;')}">
+          <div>${t}</div>
+          <div class="ac-soc">${soc} • ${title}</div>
+        </div>`;
+      }).join('');
+      acList.classList.add('open');
+      acIndex = -1;
+      acList.querySelectorAll('.ac-item').forEach(el => {
+        el.addEventListener('mousedown', e => {
+          e.preventDefault();
+          selectTitle(el.dataset.title);
+        });
+      });
+    }
+
+
+
+const METRICS = ['l1','l2','l3','l4','avg'];
+const PAGE_TITLE = 'US County Wage Explorer — 2026–27';
+
+// ---- URL STATE ----
+// Put the selection in the address bar so a result can be shared, bookmarked
+// and walked back with the Back button -- and so each occupation has a URL of
+// its own rather than all 997 collapsing onto one page.
+let applyingUrl = false;
+
+function writeUrlState(push) {
+  if (applyingUrl) return;
+  const params = new URLSearchParams();
+  if (selectedTitle) params.set('occ', selectedTitle);
+  if (activeMetric !== 'avg') params.set('metric', activeMetric);
+  if (userUnitPref) params.set('unit', userUnitPref === 'A' ? 'yr' : 'hr');
+  // Share the ZIP that was typed, not the FIPS it resolved to.
+  if (locatedVia) params.set('zip', locatedVia);
+  else if (locatedFips) params.set('fips', locatedFips);
+  const qs = params.toString();
+  const url = location.pathname + (qs ? '?' + qs : '');
+  // Mirror the query exactly; a partial state object is just misleading.
+  const state = Object.fromEntries(params);
+  if (push && url !== location.pathname + location.search) {
+    history.pushState(state, '', url);
+  } else {
+    history.replaceState(state, '', url);
+  }
+  document.title = selectedTitle ? selectedTitle + ' — ' + PAGE_TITLE : PAGE_TITLE;
+}
+
+function setMetric(metric, writeUrl) {
+  if (!METRICS.includes(metric)) return;
+  activeMetric = metric;
+  document.querySelectorAll('.metric-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.metric === metric));
+  if (writeUrl) writeUrlState(false);
+}
+
+// Reads ?occ= and ?metric= and brings the page to that state without writing
+// back. Used on first load and on every Back/Forward.
+async function applyUrlState() {
+  const params = new URLSearchParams(location.search);
+  applyingUrl = true;
+  try {
+    setMetric(params.get('metric') || 'avg', false);
+    const u = params.get('unit');
+    userUnitPref = u === 'yr' ? 'A' : u === 'hr' ? 'H' : null;
+    const occ = params.get('occ');
+    if (!occ) {
+      selectedTitle = null;
+      activeUnit = 'H';
+      input.value = '';
+      document.getElementById('panel-title').textContent = 'Select an Occupation';
+      updateMap();
+    } else {
+      // Tolerate a hand-edited or case-mangled title before giving up.
+      const match = geoIndex[occ] ? occ
+        : OCCUPATIONS.find(t => t.toLowerCase() === occ.toLowerCase());
+      if (match) await selectTitle(match, false);
+      else updateMap();
+    }
+
+    // Location last, so the card can show the wage the occupation just loaded.
+    const zip = params.get('zip');
+    const fips = params.get('fips');
+    if (zip && /^\d{5}$/.test(zip)) {
+      let hit = null;
+      try { hit = (await loadZipIndex()).get(zip); } catch (err) { /* offline */ }
+      if (hit && fipsInfo[hit.fips]) {
+        locInput.value = zip;
+        goToCounty(hit.fips, zip, false);
+      } else {
+        clearCounty(false);
+      }
+    } else if (fips && fipsInfo[fips]) {
+      locInput.value = fipsInfo[fips].name + ', ' + fipsInfo[fips].stAb;
+      goToCounty(fips, '', false);
+    } else {
+      clearCounty(false);
+    }
+  } finally {
+    applyingUrl = false;
+    document.title = selectedTitle ? selectedTitle + ' — ' + PAGE_TITLE : PAGE_TITLE;
+  }
+}
+
+window.addEventListener('popstate', () => { applyUrlState(); });
+
+async function selectTitle(title, pushUrl = true) {
+
+  selectedTitle = title;
+  input.value = title;
+  acList.classList.remove('open');
+
+  const geo = geoIndex[title];
+  if (!geo) return;
+
+  activeUnit = geo.unit;
+  if (pushUrl) writeUrlState(true);
+
+  // Files are keyed by SOC code, so one download covers every occupation in
+  // it. Keep the parsed result so switching back is instant.
+  const cached = csvCache.get(geo.url);
+  if (cached) {
+    ({ titleIndex, countyIndex } = cached);
+    updateMap();
+    return;
+  }
+
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('load-msg').textContent = 'Loading occupation data...';
+
+  // clear old data
+  titleIndex = {};
+  countyIndex = {};
+
+  await loadCSVData(geo.url);
+  csvCache.set(geo.url, { titleIndex, countyIndex });
+
+  document.getElementById('loading').style.display = 'none';
+
+  updateMap();
+}
+
+  input.addEventListener('input', () => {
+    const q = input.value.toLowerCase().trim();
+    if (!q) { acList.classList.remove('open'); return; }
+    // const matches = TITLES.filter(t => t.toLowerCase().includes(q));
+    const matches = OCCUPATIONS.filter(t => t.toLowerCase().includes(q));
+    renderAC(matches);
+  });
+
+  input.addEventListener('keydown', e => {
+    const items = acList.querySelectorAll('.ac-item');
+    if (e.key === 'ArrowDown') { acIndex = Math.min(acIndex+1, items.length-1); items.forEach((el,i)=>el.classList.toggle('active',i===acIndex)); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { acIndex = Math.max(acIndex-1, 0); items.forEach((el,i)=>el.classList.toggle('active',i===acIndex)); e.preventDefault(); }
+    else if (e.key === 'Enter' && acIndex >= 0 && items[acIndex]) { selectTitle(items[acIndex].dataset.title); }
+    else if (e.key === 'Escape') { acList.classList.remove('open'); }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.autocomplete-wrap')) {
+      acList.classList.remove('open');
+      locList.classList.remove('open');
+    }
+  });
+
+  // ---- CLEAR BUTTONS ----
+  // mousedown is suppressed so the field keeps focus; otherwise the blur fires
+  // before the click and the caret lands somewhere else.
+  document.querySelectorAll('.input-clear').forEach(btn =>
+    btn.addEventListener('mousedown', e => e.preventDefault()));
+
+  document.getElementById('filter-clear').addEventListener('click', () => {
+    // Just the text, ready for a new search -- the map keeps what it is showing.
+    input.value = '';
+    acList.classList.remove('open');
+    input.focus();
+  });
+
+  document.getElementById('location-clear').addEventListener('click', () => {
+    // Here the field is the selection, so clear the whole thing: the pin on
+    // the map, the county card and the url parameter all go with it.
+    locList.classList.remove('open');
+    clearCounty();
+    locInput.focus();
+  });
+
+  // ---- METRIC BUTTONS ----
+  document.querySelectorAll('.metric-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setMetric(btn.dataset.metric, true);
+      updateMap();
+    });
+  });
+
+  // ---- HOURLY / YEARLY ----
+  document.querySelectorAll('.unit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      userUnitPref = btn.dataset.unit;
+      writeUrlState(false);
+      updateMap();            // repaints every figure, and syncs the buttons
+    });
+  });
+
+  // Last, so a shared link lands on its occupation instead of a blank map.
+  await applyUrlState();
+}
+
+init().catch(err => {
+  document.getElementById('loading').innerHTML =
+    '<span style="color:#ef4444">Failed to load. Check connection.</span><br><small>' + err.message + '</small>';
+  console.error(err);
+});
+
+// ---- DISCLAIMER ----
+(async function() {
+  try {
+    const res = await fetch('disclaimer.txt');
+    const text = res.ok ? await res.text() : 'This tool is for informational purposes only. Data may not be current or complete.';
+    document.getElementById('disclaimer-text').textContent = text.trim();
+  } catch(e) {
+    document.getElementById('disclaimer-text').textContent = 'This tool is for informational purposes only. Data may not be current or complete.';
+  }
+})();
+
+document.getElementById('disclaimer-close').addEventListener('click', () => {
+  document.getElementById('disclaimer-overlay').style.display = 'none';
+});
+
+// ---- SOURCE BUTTON & MODAL ----
+const sourceOverlay = document.getElementById('source-overlay');
+document.getElementById('source-btn').addEventListener('click', () => {
+  sourceOverlay.style.display = 'flex';
+});
+document.getElementById('source-close').addEventListener('click', () => {
+  sourceOverlay.style.display = 'none';
+});
+sourceOverlay.addEventListener('click', e => {
+  if (e.target === sourceOverlay) sourceOverlay.style.display = 'none';
+});
+
+// ---- HELP POPUP (30s) ----
+setTimeout(() => {
+  const hp = document.getElementById('help-popup');
+  hp.style.display = 'block';
+}, 30000);
+
+document.getElementById('help-later').addEventListener('click', () => {
+  document.getElementById('help-popup').style.display = 'none';
+});
+</script>
+</body>
+</html>
