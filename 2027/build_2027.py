@@ -1,21 +1,25 @@
 """Build the 2027 (wage year 2026-27) dashboard data from the raw OFLC download.
 
-Reproduces the pipeline behind 2026/DividedCSV and 2026/Prof_w_links*.csv
-(originally 2026/NoteBooks/OFLC_Mar06_2026.ipynb). Verified byte-for-byte
-against the 2026 output on a 40-SOC sample.
+Based on the pipeline behind 2026/DividedCSV and 2026/Prof_w_links*.csv
+(originally 2026/NoteBooks/OFLC_Mar06_2026.ipynb), with two changes:
+
+  * titles keep their real commas. The 2026 files replaced them with ';'
+    because the dashboard parsed its index with a bare row.split(','); the
+    page now uses a quoted-CSV parser, so the substitution is gone.
+  * per-occupation files are written gzipped. GitHub serves LFS content
+    with no content-encoding, and these files compress to about 5% of
+    their size, so shipping .csv.gz cuts each page view from ~770 KB to
+    ~42 KB. The page inflates them with DecompressionStream.
 
 Pipeline:
-  ALC_Export  x  Geography  on Area            (inner)
+  ALC_Export  x  Geography  on Area                 (inner)
               x  xwalk_plus on SocCode=OES_SOCCODE  (inner)
-  drop Label, stable-sort by Area, split by OES_SOCCODE -> DividedCSV/<soc>.csv
-
-Commas in the crosswalk title columns become semicolons, because the dashboard
-parses the profession index with a plain row.split(',') and renders ';' back
-as ',' at display time.
+  drop Label, stable-sort by Area, split by OES_SOCCODE -> DividedCSV/<soc>.csv.gz
 
 Usage:  python3 build_2027.py
 """
 
+import gzip
 import io
 import os
 
@@ -31,21 +35,11 @@ URL_BASE = (
     "/refs/heads/Mobile-Version/2027/DividedCSV/"
 )
 
-SEMICOLON_COLS = ["OES_SOCTITLE", "ONetTitle"]
-
-
-def semicolon(series):
-    """Commas break the dashboard's naive index parser; it maps ';' back to ','."""
-    return series.astype(str).str.replace(",", ";", regex=False)
-
 
 def build_divided_csv():
     alc = pd.read_csv(os.path.join(SRC, "ALC_Export.csv"))
     geo = pd.read_csv(os.path.join(SRC, "Geography.csv"))
     pro = pd.read_csv(os.path.join(SRC, "xwalk_plus.csv"))
-
-    for col in SEMICOLON_COLS:
-        pro[col] = semicolon(pro[col])
 
     merged = (
         alc.merge(geo, on="Area", how="inner")
@@ -61,20 +55,28 @@ def build_divided_csv():
     # batch come back missing, so retry until the file on disk matches.
     groups = dict(tuple(merged.groupby("OES_SOCCODE")))
     unwritten = []
+    raw_total = gz_total = 0
     for soc, group in groups.items():
         buf = io.StringIO()
         group.to_csv(buf, index=False)
-        want = buf.getvalue()
-        path = os.path.join(DIVIDED_DIR, f"{soc}.csv")
+        raw = buf.getvalue().encode()
+        # mtime=0 so rebuilding identical data produces identical bytes
+        want = gzip.compress(raw, compresslevel=9, mtime=0)
+        raw_total += len(raw)
+        gz_total += len(want)
+
+        path = os.path.join(DIVIDED_DIR, f"{soc}.csv.gz")
         for _ in range(4):
-            if os.path.exists(path) and open(path).read() == want:
+            if os.path.exists(path) and open(path, "rb").read() == want:
                 break
-            with open(path, "w") as fh:
+            with open(path, "wb") as fh:
                 fh.write(want)
         else:
             unwritten.append(soc)
 
     print(f"wrote {len(groups) - len(unwritten)}/{len(groups)} files to {DIVIDED_DIR}")
+    print(f"  {raw_total / 1048576:.0f} MB raw -> {gz_total / 1048576:.0f} MB gzipped "
+          f"({gz_total / raw_total * 100:.1f}%)")
     if unwritten:
         raise SystemExit(f"FAILED to write: {unwritten}")
 
@@ -82,28 +84,24 @@ def build_divided_csv():
 def build_profession_index():
     pro = pd.read_csv(os.path.join(SRC, "xwalk_plus.csv"), dtype=str, keep_default_na=False)
     pro.columns = ["SOCCODE", "SOCTITLE", "TruncOnetCode", "OnetCode", "Occupation"]
-    pro["filename"] = pro["SOCCODE"] + ".csv"
+    pro["filename"] = pro["SOCCODE"] + ".csv.gz"
     pro["url"] = URL_BASE + pro["filename"]
 
     pro.drop(columns=["url"]).to_csv(
         os.path.join(HERE, "Prof_wO_links.csv"), index=False)
     pro.to_csv(os.path.join(HERE, "Prof_w_links.csv"), index=False)
 
-    semi = pro.copy()
-    semi["Occupation"] = semicolon(semi["Occupation"])
-    semi.to_csv(os.path.join(HERE, "Prof_w_linksSemicolon.csv"), index=False)
-
-    # What 2027Live/index.html actually fetches. SOCTITLE carries the O*NET
-    # title and Category carries the broader SOC title.
+    # What 2027Live/index.html fetches. SOCTITLE carries the O*NET title and
+    # Category the broader SOC title; pandas quotes any field holding a comma.
     rearranged = pd.DataFrame({
         "SOCCODE": pro["SOCCODE"],
-        "SOCTITLE": semicolon(pro["Occupation"]),
+        "SOCTITLE": pro["Occupation"],
         "TruncOnetCode": pro["TruncOnetCode"],
         "OnetCode": pro["OnetCode"],
-        "Occupation": semicolon(pro["Occupation"]),
+        "Occupation": pro["Occupation"],
         "filename": pro["filename"],
         "url": pro["url"],
-        "Category": semicolon(pro["SOCTITLE"]),
+        "Category": pro["SOCTITLE"],
     })
     rearranged.to_csv(
         os.path.join(HERE, "Prof_w_linksRearrangeColumn.csv"), index=False)
