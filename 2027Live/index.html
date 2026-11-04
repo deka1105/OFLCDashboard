@@ -671,6 +671,8 @@ async function loadGeoCSV() {
     const filename = cols[5];
     const url = cols[6];
     const category = cols[7];
+    // 'A' for the 61 SOC codes OFLC reports as annual salaries, else 'H'.
+    const unit = cols[8] === 'A' ? 'A' : 'H';
 
     geoIndex[occupation] = {
       soccode,
@@ -678,7 +680,8 @@ async function loadGeoCSV() {
       onetcode,
       filename,
       url,
-      category
+      category,
+      unit
     };
 
     OCCUPATIONS.push(occupation);
