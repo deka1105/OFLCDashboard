@@ -608,6 +608,10 @@ let titleSocCodeMap = {}; // title -> SocCode
 let TITLES = [];
 let selectedTitle = null;
 let activeMetric = 'avg';
+// 'H' (hourly rate) or 'A' (annual salary), from the occupation index. 61 of
+// the 848 SOC codes are published as annual salaries, and the figures alone
+// give no hint -- an $87.04 and a $236,770 look alike without a suffix.
+let activeUnit = 'H';
 let currentData = {};
 
 let geoIndex = {};       // occupation -> {soccode, filename, url}
@@ -781,7 +785,27 @@ function lerpColor(a, b, t) {
   return '#' + [r,g,bl2].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 
-function fmt(v) { return v ? '$' + v.toFixed(2) : 'N/A'; }
+// Annual salaries get thousands separators and no cents -- "$236,770" rather
+// than "$236770.00". fmtNum is for dense rows that already state the unit in
+// their heading; fmt carries the suffix for figures that stand on their own.
+function fmtNum(v) {
+  if (!v) return 'N/A';
+  return activeUnit === 'A'
+    ? '$' + Math.round(v).toLocaleString('en-US')
+    : '$' + v.toFixed(2);
+}
+function fmt(v) { return v ? fmtNum(v) + unitSuffix() : 'N/A'; }
+function unitSuffix() { return activeUnit === 'A' ? '/yr' : '/hr'; }
+function unitWords() { return activeUnit === 'A' ? 'per year' : 'per hour'; }
+
+// Annual is the surprising case, so say so loudly rather than relying on "/yr".
+function updateUnitNote() {
+  const note = document.getElementById('unit-note');
+  if (!note) return;
+  if (!selectedTitle) { note.textContent = ''; note.className = ''; return; }
+  note.textContent = activeUnit === 'A' ? 'ANNUAL SALARY' : 'Hourly rate';
+  note.className = activeUnit === 'A' ? 'annual' : '';
+}
 </script>
 
 <script>
