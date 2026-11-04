@@ -19,6 +19,7 @@ Pipeline:
 Usage:  python3 build_2027.py
 """
 
+import csv
 import gzip
 import io
 import os
@@ -230,3 +231,4 @@ def build_profession_index():
 if __name__ == "__main__":
     build_divided_csv()
     build_profession_index()
+    build_zip_county()
