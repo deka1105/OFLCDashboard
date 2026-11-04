@@ -570,6 +570,14 @@
     </div>
   </div>
 
+  <div style="display:flex;flex-direction:column;gap:4px;">
+    <label style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Show As</label>
+    <div class="metric-group">
+      <button class="unit-btn" data-unit="H">Hourly</button>
+      <button class="unit-btn" data-unit="A">Yearly</button>
+    </div>
+  </div>
+
   <div id="legend">
     <div style="display:flex;flex-direction:column;gap:2px;">
       <div id="unit-note"></div>
@@ -662,6 +670,12 @@ let activeMetric = 'avg';
 // the 848 SOC codes are published as annual salaries, and the figures alone
 // give no hint -- an $87.04 and a $236,770 look alike without a suffix.
 let activeUnit = 'H';
+// What the viewer asked to see, which may not be what OFLC published:
+// null = as published, 'H' = hourly, 'A' = yearly. A converted figure is
+// always labelled, because it is arithmetic rather than a published wage.
+let userUnitPref = null;
+// OFLC's own convention for moving between the two (40 h/week x 52 weeks).
+const HOURS_PER_YEAR = 2080;
 let currentData = {};
 
 let geoIndex = {};       // occupation -> {soccode, filename, url}
