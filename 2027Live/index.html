@@ -1233,12 +1233,13 @@ async function selectTitle(title, pushUrl = true) {
   // ---- METRIC BUTTONS ----
   document.querySelectorAll('.metric-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeMetric = btn.dataset.metric;
+      setMetric(btn.dataset.metric, true);
       updateMap();
     });
   });
+
+  // Last, so a shared link lands on its occupation instead of a blank map.
+  await applyUrlState();
 }
 
 init().catch(err => {
