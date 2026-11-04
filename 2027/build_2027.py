@@ -281,3 +281,4 @@ if __name__ == "__main__":
     build_divided_csv()
     build_profession_index()
     build_zip_county()
+    build_fallback()
