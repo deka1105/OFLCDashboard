@@ -136,6 +136,13 @@
   #found-county .fc-sub { font-size: 0.6rem; color: var(--muted); margin-top: 2px; }
   #found-county .fc-wage { font-size: 1.15rem; color: var(--text); margin-top: 6px; font-weight: 600; }
   #found-county .fc-rank { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+  /* Marks a figure carried over from an earlier wage year. */
+  .yr-tag {
+    display: inline-block; margin-left: 6px; padding: 0 4px;
+    font-size: 0.55rem; letter-spacing: 0.04em; white-space: nowrap;
+    color: var(--accent2); border: 1px solid var(--accent2);
+    border-radius: 2px; vertical-align: middle; font-weight: 400;
+  }
   #found-county .fc-arc { margin-top: 8px; }
   #found-county .fc-arc svg { display: block; overflow: visible; }
   #found-county .fc-arc-cap {
@@ -962,7 +969,7 @@ async function init() {
   // document.getElementById('load-msg').textContent = 'LOADING CSV DATA...';
   // await loadCSVData();
   document.getElementById('load-msg').textContent = 'LOADING OCCUPATION INDEX...';
-  await loadGeoCSV();
+  await Promise.all([loadGeoCSV(), loadFallback()]);
   document.getElementById('load-msg').textContent = 'LOADING MAP TOPOLOGY...';
   const us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-albers-10m.json');
   document.getElementById('loading').style.display = 'none';
@@ -1219,7 +1226,7 @@ async function init() {
 
     box.innerHTML =
       '<button class="fc-clear">clear</button>' +
-      `<div class="fc-name">${info.name}, ${info.stAb}</div>` +
+      `<div class="fc-name">${info.name}, ${info.stAb}${yearTag(lastFipsRow[locatedFips])}</div>` +
       `<div class="fc-sub">${locatedVia ? 'ZIP ' + locatedVia + ' &middot; ' : ''}${info.stateName}</div>` +
       wage + rank + also;
 
@@ -1322,7 +1329,7 @@ async function init() {
     const cdata = countyIndex[key] || {};
     const tdata = selectedTitle ? cdata[selectedTitle] : null;
 
-    let html = `<div class="tt-county">${info.name}</div>
+    let html = `<div class="tt-county">${info.name}${yearTag(tdata)}</div>
       <div class="tt-state">${info.stateName} (${info.stAb})</div>`;
 
     if (selectedTitle) {
@@ -1455,7 +1462,7 @@ async function init() {
     const metricLabels = {l1:'Lvl1', l2:'Lvl2', l3:'Lvl3', l4:'Lvl4', avg:'Avg'};
     panel.innerHTML = sorted.map(r => `
       <div class="county-item">
-        <div class="ci-name">${r.county}</div>
+        <div class="ci-name">${r.county}${yearTag(r)}</div>
         <div class="ci-state">${r.stAb}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
           ${['l1','l2','l3','l4','avg'].map(m =>
