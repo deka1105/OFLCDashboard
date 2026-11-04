@@ -82,6 +82,55 @@ def build_divided_csv():
         raise SystemExit(f"FAILED to write: {unwritten}")
 
 
+PREV_LABEL = "2025-26"
+PREV_ALC = os.path.join(
+    ROOT, "2026", "Data", "OFLC_Wages_2025-26_Updated", "ALC_Export_26.csv")
+
+
+def build_fallback():
+    """Write fallback_2025_26.csv.gz: last year's wage for cells blank this year.
+
+    Coverage between the two wage years is otherwise identical -- same 848 SOC
+    codes, same 3,275 counties, all 449,440 (SOC, Area) pairs present in both.
+    What differs is that 1,759 cells in 2026-27 carry no wage at all: 1,229
+    flagged 'High Wage' (above the OES cap, so OFLC suppresses the figure) and
+    530 'No Leveled Wage'. Those render as N/A and as grey counties.
+
+    1,168 of them had a published wage in 2025-26. Those are the only rows
+    written here, keyed by (SocCode, Area) -- the page expands Area to counties
+    itself, so this stays 1,168 rows rather than the 6,601 it would become
+    county by county. Every substituted figure is tagged in the UI with its
+    wage year; it is last year's number, not this year's.
+    """
+    wage_cols = ["Level1", "Level2", "Level3", "Level4", "Average"]
+    use = ["Area", "SocCode"] + wage_cols
+
+    new = pd.read_csv(os.path.join(SRC, "ALC_Export.csv"),
+                      dtype=str, keep_default_na=False, usecols=use)
+    old = pd.read_csv(PREV_ALC, dtype=str, keep_default_na=False, usecols=use)
+
+    blank_new = new[wage_cols].apply(pd.to_numeric, errors="coerce").isna().all(axis=1)
+    blank_old = old[wage_cols].apply(pd.to_numeric, errors="coerce").isna().all(axis=1)
+
+    donors = old[~blank_old].drop_duplicates(["SocCode", "Area"]) \
+                            .set_index(["SocCode", "Area"])[wage_cols]
+    filled = (new[blank_new][["SocCode", "Area"]]
+              .drop_duplicates()
+              .join(donors, on=["SocCode", "Area"], how="inner")
+              .sort_values(["SocCode", "Area"], kind="mergesort"))
+    filled["Year"] = PREV_LABEL
+
+    body = filled.to_csv(index=False).encode()
+    blob = gzip.compress(body, compresslevel=9, mtime=0)
+    out = os.path.join(HERE, "fallback_2025_26.csv.gz")
+    with open(out, "wb") as fh:
+        fh.write(blob)
+    print(f"wrote {len(filled):,} fallback cells across "
+          f"{filled.SocCode.nunique()} occupations to {out} "
+          f"({len(body) / 1024:.0f} KB raw -> {len(blob) / 1024:.0f} KB gzipped); "
+          f"{int(blank_new.sum()) - len(filled):,} cells stay blank in both years")
+
+
 def build_zip_county():
     """Write DividedCSV/../zip_county.csv.gz: ZIP -> county FIPS.
 
