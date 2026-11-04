@@ -1246,6 +1246,8 @@ async function init() {
       countyPaths.attr('fill','#151c2e').classed('no-data', true);
       document.getElementById('legend-min').textContent = '$0';
       document.getElementById('legend-max').textContent = '--';
+      lastFipsVal = {};
+      renderFoundCounty();
       return;
     }
 
@@ -1282,7 +1284,9 @@ async function init() {
   `Showing ${Object.keys(fipsVal).length} counties for "${selectedTitle}" • Pinch or use buttons to zoom`;
 
     // Update side panel
+    lastFipsVal = fipsVal;
     updatePanel(rows, minVal, maxVal);
+    renderFoundCounty();
   }
 
   function updatePanel(rows, minVal, maxVal) {
