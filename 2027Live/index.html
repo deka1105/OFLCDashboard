@@ -1369,9 +1369,11 @@ async function init() {
   function showTip(event, fips) {
     const info = fipsInfo[fips];
     if (!info) return;
-    const key = info.name + ' County|' + info.stAb;
-    const cdata = countyIndex[key] || {};
-    const tdata = selectedTitle ? cdata[selectedTitle] : null;
+    // Rebuilding a "<name> County|ST" key only works where the map's name and
+    // OFLC's happen to agree -- it misses every parish and borough, and all of
+    // Connecticut. updateMap has already matched a row to this exact shape, so
+    // use that.
+    const tdata = selectedTitle ? (lastFipsRow[fips] || null) : null;
 
     let html = `<div class="tt-county">${info.name}${yearTag(tdata)}</div>
       <div class="tt-state">${info.stateName} (${info.stAb})</div>`;
@@ -1453,8 +1455,10 @@ async function init() {
     const fipsVal = {};
     const fipsRow = {};
     rows.forEach(r => {
-      const fips = resolveCountyFips(r.county, r.stAb);
-      if (fips) { fipsVal[fips] = r[activeMetric]; fipsRow[fips] = r; }
+      resolveCountyFipsList(r.county, r.stAb).forEach(fips => {
+        fipsVal[fips] = r[activeMetric];
+        fipsRow[fips] = r;
+      });
     });
     lastFipsRow = fipsRow;   // all four levels, for the career arc
 
