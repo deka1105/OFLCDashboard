@@ -1054,6 +1054,53 @@ async function init() {
   let locatedFips = null;
   let locatedVia = '';     // the ZIP typed, when that is how we got here
   let lastFipsVal = {};    // whatever updateMap last painted, for the rank
+  let lastFipsRow = {};    // the full l1..l4 row, for the career arc
+
+  // Levels 1-4 are not four filters, they are an entry-to-expert progression
+  // (OFLC's experience tiers). Drawn as one line, the gap between starting
+  // and senior pay in this county is readable at a glance -- it runs from
+  // 1.0x to 9.3x depending on the occupation.
+  function levelArcSvg(row) {
+    const vals = ['l1', 'l2', 'l3', 'l4'].map(k => row[k]);
+    if (!vals.every(v => v > 0)) return '';
+
+    const W = 236, H = 62, padX = 16, topY = 20, botY = 44;
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const span = hi - lo || 1;
+    const pts = vals.map((v, i) => [
+      padX + i * (W - padX * 2) / 3,
+      botY - (v - lo) / span * (botY - topY)
+    ]);
+
+    const active = ['l1', 'l2', 'l3', 'l4'].indexOf(activeMetric);
+    const dots = pts.map(([x, y], i) => {
+      const on = i === active;
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${on ? 4 : 2.6}"
+        fill="${on ? 'var(--accent)' : 'var(--accent2)'}"
+        stroke="var(--surface)" stroke-width="${on ? 1.5 : 0}"/>`;
+    }).join('');
+
+    const ticks = pts.map(([x], i) =>
+      `<text x="${x.toFixed(1)}" y="${H - 3}" text-anchor="middle"
+        fill="${i === active ? 'var(--accent)' : 'var(--muted)'}"
+        font-size="8">L${i + 1}</text>`).join('');
+
+    return `
+      <div class="fc-arc">
+        <svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img"
+             aria-label="Wage by experience level, Level 1 through Level 4">
+          <polyline points="${pts.map(p => p.map(n => n.toFixed(1)).join(',')).join(' ')}"
+                    fill="none" stroke="var(--accent2)" stroke-width="1.6"
+                    stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>
+          ${dots}${ticks}
+          <text x="${padX}" y="12" fill="var(--muted)" font-size="8.5">${fmtNum(vals[0])}</text>
+          <text x="${W - padX}" y="12" text-anchor="end" fill="var(--text)"
+                font-size="8.5">${fmtNum(vals[3])}</text>
+        </svg>
+        <div class="fc-arc-cap">entry &rarr; senior &middot;
+          <strong>${(vals[3] / vals[0]).toFixed(2)}&times;</strong></div>
+      </div>`;
+  }
 
   function zoomToFips(fips) {
     const feat = featureByFips[fips];
