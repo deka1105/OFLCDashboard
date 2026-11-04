@@ -1091,7 +1091,8 @@ async function init() {
         const title = geoIndex[t].category;
         const normalizedTitle = title.includes(';') ? title.replaceAll(';', ',') : title;
         const normalizedT = t.replaceAll(';', ',');
-        return `<div class="ac-item" data-title="${normalizedT.replace(/"/g,'&quot;')}">
+        // data-key keeps the ';' form the indexes are keyed by; data-title is display only.
+        return `<div class="ac-item" data-key="${t.replace(/"/g,'&quot;')}" data-title="${normalizedT.replace(/"/g,'&quot;')}">
           <div>${normalizedT}</div>
           <div class="ac-soc">${soc} • ${normalizedTitle}</div>
         </div>`;
@@ -1101,7 +1102,7 @@ async function init() {
       acList.querySelectorAll('.ac-item').forEach(el => {
         el.addEventListener('mousedown', e => {
           e.preventDefault();
-          selectTitle(el.dataset.title);
+          selectTitle(el.dataset.key);
         });
       });
     }
