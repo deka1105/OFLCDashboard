@@ -1189,6 +1189,15 @@ async function selectTitle(title) {
   const geo = geoIndex[title];
   if (!geo) return;
 
+  // Files are keyed by SOC code, so one download covers every occupation in
+  // it. Keep the parsed result so switching back is instant.
+  const cached = csvCache.get(geo.url);
+  if (cached) {
+    ({ titleIndex, countyIndex } = cached);
+    updateMap();
+    return;
+  }
+
   document.getElementById('loading').style.display = 'flex';
   document.getElementById('load-msg').textContent = 'Loading occupation data...';
 
@@ -1197,6 +1206,7 @@ async function selectTitle(title) {
   countyIndex = {};
 
   await loadCSVData(geo.url);
+  csvCache.set(geo.url, { titleIndex, countyIndex });
 
   document.getElementById('loading').style.display = 'none';
 
@@ -1215,7 +1225,7 @@ async function selectTitle(title) {
     const items = acList.querySelectorAll('.ac-item');
     if (e.key === 'ArrowDown') { acIndex = Math.min(acIndex+1, items.length-1); items.forEach((el,i)=>el.classList.toggle('active',i===acIndex)); e.preventDefault(); }
     else if (e.key === 'ArrowUp') { acIndex = Math.max(acIndex-1, 0); items.forEach((el,i)=>el.classList.toggle('active',i===acIndex)); e.preventDefault(); }
-    else if (e.key === 'Enter' && acIndex >= 0 && items[acIndex]) { selectTitle(items[acIndex].dataset.key); }
+    else if (e.key === 'Enter' && acIndex >= 0 && items[acIndex]) { selectTitle(items[acIndex].dataset.title); }
     else if (e.key === 'Escape') { acList.classList.remove('open'); }
   });
 
