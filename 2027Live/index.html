@@ -1305,10 +1305,12 @@ async function init() {
     const rows = titleIndex[selectedTitle] || [];
     // Build fips -> value
     const fipsVal = {};
+    const fipsRow = {};
     rows.forEach(r => {
       const fips = resolveCountyFips(r.county, r.stAb);
-      if (fips) fipsVal[fips] = r[activeMetric];
+      if (fips) { fipsVal[fips] = r[activeMetric]; fipsRow[fips] = r; }
     });
+    lastFipsRow = fipsRow;   // all four levels, for the career arc
 
     const vals = Object.values(fipsVal).filter(v => v > 0);
     const minVal = vals.length ? Math.min(...vals) : 0;
