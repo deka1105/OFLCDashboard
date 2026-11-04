@@ -55,7 +55,7 @@
   .filter-group { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 220px; max-width: 420px; }
   .filter-group label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
 
-  #filter-input {
+  #filter-input, #location-input {
     background: var(--surface2);
     border: 1px solid var(--border);
     color: var(--text);
@@ -65,7 +65,7 @@
     outline: none;
     width: 100%;
   }
-  #filter-input:focus { border-color: var(--accent); }
+  #filter-input:focus, #location-input:focus { border-color: var(--accent); }
 
   .autocomplete-wrap { position: relative; }
   #autocomplete-list, #location-list {
@@ -92,7 +92,7 @@
 
   .metric-group { display: flex; gap: 6px; align-items: center; }
   .metric-group label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
-  .metric-btn {
+  .metric-btn, .unit-btn {
     background: var(--surface2);
     border: 1px solid var(--border);
     color: var(--muted);
@@ -104,8 +104,8 @@
     transition: all 0.15s;
     white-space: nowrap;
   }
-  .metric-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
-  .metric-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
+  .metric-btn.active, .unit-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+  .metric-btn:hover:not(.active), .unit-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
 
   /* LEGEND */
   #legend {
@@ -426,7 +426,7 @@
       flex-wrap: wrap;
     }
 
-    .metric-btn {
+    .metric-btn, .unit-btn {
       font-size: 0.7rem;
       padding: 6px 8px;
     }
@@ -510,12 +510,12 @@
       font-size: 1.05rem;
     }
 
-    #filter-input {
+    #filter-input, #location-input {
       font-size: 0.8rem;
       padding: 8px;
     }
 
-    .metric-btn {
+    .metric-btn, .unit-btn {
       font-size: 0.65rem;
     }
 
