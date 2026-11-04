@@ -153,6 +153,8 @@
     letter-spacing: 0.08em; min-height: 0.8rem;
   }
   #unit-note.annual, .panel-unit.annual, .tt-unit.annual { color: #f0b429; font-weight: 700; }
+  /* A derived figure, not a published one -- distinct from the amber. */
+  #unit-note.converted { color: var(--accent2); }
   .panel-unit, .tt-unit {
     font-size: 0.58rem; color: var(--muted); font-weight: 400;
     text-transform: uppercase; letter-spacing: 0.06em;
@@ -1290,6 +1292,7 @@ async function init() {
   // ---- UPDATE MAP ----
   function updateMap() {
     updateUnitNote();
+    syncUnitButtons();
     if (!selectedTitle) {
       countyPaths.attr('fill','#151c2e').classed('no-data', true);
       document.getElementById('legend-min').textContent = '$0';
