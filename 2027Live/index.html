@@ -123,7 +123,9 @@
   /* Find-your-county field. Keeps the located county visible at any zoom:
      the <g> is scaled by d3.zoom, so the stroke has to opt out of scaling. */
   .county.located {
-    stroke: #f0b429; stroke-width: 1.6px; vector-effect: non-scaling-stroke;
+    /* White, not the theme amber -- #f0b429 is a stop in the legend gradient,
+       so an amber outline disappears on mid-range counties. */
+    stroke: #fff; stroke-width: 2px; vector-effect: non-scaling-stroke;
   }
   #found-county {
     padding: 10px 12px; border-bottom: 1px solid var(--border);
@@ -1014,7 +1016,9 @@ async function init() {
     if (!feat) return;
     const [[x0, y0], [x1, y1]] = path.bounds(feat);
     const W = 960, H = 600;   // the svg viewBox, not CSS pixels
-    const k = Math.max(1, Math.min(12, 0.25 / Math.max((x1 - x0) / W, (y1 - y0) / H)));
+    // Aim for the county filling ~30% of the frame, so its neighbours stay
+    // visible for comparison. Capped below d3.zoom's own scaleExtent of 20.
+    const k = Math.max(1, Math.min(16, 0.3 / Math.max((x1 - x0) / W, (y1 - y0) / H)));
     svg.transition().duration(750).call(zoom.transform,
       d3.zoomIdentity.translate(W / 2, H / 2).scale(k)
         .translate(-(x0 + x1) / 2, -(y0 + y1) / 2));
