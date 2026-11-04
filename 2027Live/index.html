@@ -549,6 +549,14 @@
     </div>
   </div>
 
+  <div class="filter-group">
+    <label>Find Your County</label>
+    <div class="autocomplete-wrap">
+      <input id="location-input" type="text" placeholder="ZIP code or county name..." autocomplete="off" />
+      <div id="location-list"></div>
+    </div>
+  </div>
+
   <div style="display:flex;flex-direction:column;gap:4px;">
     <label style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Metric</label>
     <div class="metric-group">
@@ -591,6 +599,7 @@
 
   <div id="side-panel">
     <h3 id="panel-title">Select an Occupation</h3>
+    <div id="found-county"></div>
     <div id="county-list">
       <div id="no-data-msg">Use the filter above to select an occupation and see county-level data.</div>
     </div>
@@ -958,6 +967,206 @@ async function init() {
   document.getElementById('btn-zoom-in').onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1.6);
   document.getElementById('btn-zoom-out').onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1/1.6);
   document.getElementById('btn-reset').onclick = () => svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+
+  // ---- FIND YOUR COUNTY ----
+  // Most people know their ZIP and not their county -- Brooklyn is Kings
+  // County and nothing on this page ever said so. One field takes either, so
+  // there is no second box to guess between.
+  const ZIP_CSV_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/Mobile-Version/2027/zip_county.csv.gz';
+  const METRIC_NAMES = {l1:'Level 1', l2:'Level 2', l3:'Level 3', l4:'Level 4', avg:'Average'};
+
+  const featureByFips = {};
+  counties.features.forEach(f => { featureByFips[String(f.id).padStart(5,'0')] = f; });
+
+  // The county names already arrived with the map topology, so name search
+  // costs no extra download -- only the ZIP crosswalk does.
+  const COUNTY_CHOICES = Object.keys(fipsInfo).map(fips => ({
+    fips,
+    label: fipsInfo[fips].name + ', ' + fipsInfo[fips].stAb,
+    sub: fipsInfo[fips].stateName,
+    key: (fipsInfo[fips].name + ' ' + fipsInfo[fips].stAb + ' ' +
+          fipsInfo[fips].stateName).toLowerCase()
+  })).sort((a, b) => a.label.localeCompare(b.label));
+
+  // ~106 KB, and most visits never touch it, so fetch on first use.
+  let zipIndex = null;
+  async function loadZipIndex() {
+    if (zipIndex) return zipIndex;
+    const text = await fetchCsvText(ZIP_CSV_URL);
+    const map = new Map();
+    const lines = text.split('\n');
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i]) continue;
+      const [zip, fips, also] = lines[i].split(',');
+      if (!zip) continue;
+      map.set(zip, { fips, also: (also || '').trim().split(' ').filter(Boolean) });
+    }
+    zipIndex = map;
+    return zipIndex;
+  }
+
+  let locatedFips = null;
+  let locatedVia = '';     // the ZIP typed, when that is how we got here
+  let lastFipsVal = {};    // whatever updateMap last painted, for the rank
+
+  function zoomToFips(fips) {
+    const feat = featureByFips[fips];
+    if (!feat) return;
+    const [[x0, y0], [x1, y1]] = path.bounds(feat);
+    const W = 960, H = 600;   // the svg viewBox, not CSS pixels
+    const k = Math.max(1, Math.min(12, 0.25 / Math.max((x1 - x0) / W, (y1 - y0) / H)));
+    svg.transition().duration(750).call(zoom.transform,
+      d3.zoomIdentity.translate(W / 2, H / 2).scale(k)
+        .translate(-(x0 + x1) / 2, -(y0 + y1) / 2));
+  }
+
+  function goToCounty(fips, via, pushUrl = true) {
+    if (!featureByFips[fips]) return;
+    locatedFips = fips;
+    locatedVia = via || '';
+    const match = d => String(d.id).padStart(5, '0') === fips;
+    countyPaths.classed('located', match);
+    // SVG has no z-index, so draw it last to keep its outline unbroken.
+    countyPaths.filter(match).raise();
+    zoomToFips(fips);
+    renderFoundCounty();
+    if (pushUrl) writeUrlState(false);
+  }
+
+  function clearCounty(pushUrl = true) {
+    locatedFips = null;
+    locatedVia = '';
+    countyPaths.classed('located', false);
+    document.getElementById('location-input').value = '';
+    renderFoundCounty();
+    if (pushUrl) writeUrlState(false);
+  }
+
+  function renderFoundCounty() {
+    const box = document.getElementById('found-county');
+    if (!locatedFips || !fipsInfo[locatedFips]) { box.innerHTML = ''; return; }
+    const info = fipsInfo[locatedFips];
+    const val = lastFipsVal[locatedFips];
+
+    let wage, rank = '';
+    if (!selectedTitle) {
+      wage = '<div class="fc-sub">Pick an occupation to see its wage here.</div>';
+    } else if (!(val > 0)) {
+      wage = '<div class="fc-sub">No wage published here for this occupation.</div>';
+    } else {
+      const all = Object.values(lastFipsVal).filter(v => v > 0).sort((a, b) => b - a);
+      wage = `<div class="fc-wage">${fmt(val)}</div>`;
+      rank = `<div class="fc-rank">${METRIC_NAMES[activeMetric]} &middot; ranks ` +
+             `${(all.indexOf(val) + 1).toLocaleString()} of ` +
+             `${all.length.toLocaleString()} counties</div>`;
+    }
+
+    // A ZIP that genuinely straddles counties should say so rather than
+    // silently picking one.
+    let also = '';
+    const extra = locatedVia && zipIndex && zipIndex.get(locatedVia);
+    if (extra && extra.also.length) {
+      const links = extra.also.filter(f => fipsInfo[f])
+        .map(f => `<a data-fips="${f}">${fipsInfo[f].name}, ${fipsInfo[f].stAb}</a>`)
+        .join(', ');
+      if (links) also = `<div class="fc-also">ZIP ${locatedVia} also reaches ${links}.</div>`;
+    }
+
+    box.innerHTML =
+      '<button class="fc-clear">clear</button>' +
+      `<div class="fc-name">${info.name}, ${info.stAb}</div>` +
+      `<div class="fc-sub">${locatedVia ? 'ZIP ' + locatedVia + ' &middot; ' : ''}${info.stateName}</div>` +
+      wage + rank + also;
+
+    box.querySelector('.fc-clear').addEventListener('click', () => clearCounty());
+    box.querySelectorAll('.fc-also a').forEach(a =>
+      a.addEventListener('click', () => goToCounty(a.dataset.fips, locatedVia)));
+  }
+
+  const locInput = document.getElementById('location-input');
+  const locList = document.getElementById('location-list');
+  let locIndex = -1;
+
+  function renderLocList(items) {
+    if (!items.length) {
+      locList.innerHTML = '<div class="loc-error">No county matches that name.</div>';
+      locList.classList.add('open');
+      return;
+    }
+    locList.innerHTML = items.slice(0, 20).map(c =>
+      `<div class="ac-item" data-fips="${c.fips}">
+         <div>${c.label}</div>
+         <div class="ac-soc">${c.sub}</div>
+       </div>`).join('');
+    locList.classList.add('open');
+    locIndex = -1;
+    locList.querySelectorAll('.ac-item').forEach(el => {
+      el.addEventListener('mousedown', e => { e.preventDefault(); pickLoc(el); });
+    });
+  }
+
+  function pickLoc(el) {
+    locInput.value = el.querySelector('div').textContent;
+    locList.classList.remove('open');
+    goToCounty(el.dataset.fips, '');
+  }
+
+  async function resolveZip(zip) {
+    locList.innerHTML = '<div class="ac-item">Loading ZIP codes&hellip;</div>';
+    locList.classList.add('open');
+    let idx;
+    try {
+      idx = await loadZipIndex();
+    } catch (err) {
+      locList.innerHTML = '<div class="loc-error">Could not load the ZIP lookup.</div>';
+      return;
+    }
+    if (locInput.value.trim() !== zip) return;   // they kept typing
+    const hit = idx.get(zip);
+    if (!hit || !fipsInfo[hit.fips]) {
+      locList.innerHTML = '<div class="loc-error">No county mapped to ZIP ' + zip +
+        '. PO-box-only ZIPs have no area &mdash; try a nearby street ZIP, ' +
+        'or type the county name.</div>';
+      return;
+    }
+    locList.classList.remove('open');
+    goToCounty(hit.fips, zip);
+  }
+
+  locInput.addEventListener('input', () => {
+    const q = locInput.value.trim();
+    if (!q) { locList.classList.remove('open'); return; }
+    if (/^\d{5}$/.test(q)) { resolveZip(q); return; }
+    if (/^\d+$/.test(q)) { locList.classList.remove('open'); return; }  // partial ZIP
+    const needle = q.toLowerCase();
+    const starts = [], contains = [];
+    COUNTY_CHOICES.forEach(c => {
+      const at = c.key.indexOf(needle);
+      if (at === 0) starts.push(c);
+      else if (at > 0) contains.push(c);
+    });
+    renderLocList(starts.concat(contains));
+  });
+
+  locInput.addEventListener('keydown', e => {
+    const items = locList.querySelectorAll('.ac-item[data-fips]');
+    if (e.key === 'ArrowDown') {
+      locIndex = Math.min(locIndex + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('active', i === locIndex));
+      e.preventDefault();
+    } else if (e.key === 'ArrowUp') {
+      locIndex = Math.max(locIndex - 1, 0);
+      items.forEach((el, i) => el.classList.toggle('active', i === locIndex));
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      const q = locInput.value.trim();
+      if (locIndex >= 0 && items[locIndex]) pickLoc(items[locIndex]);
+      else if (/^\d{5}$/.test(q)) resolveZip(q);
+      else if (items.length) pickLoc(items[0]);
+    } else if (e.key === 'Escape') {
+      locList.classList.remove('open');
+    }
+  });
 
   // Tooltip
   const tooltip = document.getElementById('tooltip');
