@@ -1884,6 +1884,21 @@ sourceOverlay.addEventListener('click', e => {
   if (e.target === sourceOverlay) sourceOverlay.style.display = 'none';
 });
 
+// ---- WAGE LEVELS EXPLAINER ----
+const levelsOverlay = document.getElementById('levels-overlay');
+document.getElementById('levels-btn').addEventListener('click', () => {
+  levelsOverlay.style.display = 'flex';
+});
+document.getElementById('levels-close').addEventListener('click', () => {
+  levelsOverlay.style.display = 'none';
+});
+levelsOverlay.addEventListener('click', e => {
+  if (e.target === levelsOverlay) levelsOverlay.style.display = 'none';
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') levelsOverlay.style.display = 'none';
+});
+
 // ---- HELP POPUP (30s) ----
 setTimeout(() => {
   const hp = document.getElementById('help-popup');
