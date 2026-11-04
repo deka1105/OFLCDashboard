@@ -1420,7 +1420,8 @@ function writeUrlState(push) {
   else if (locatedFips) params.set('fips', locatedFips);
   const qs = params.toString();
   const url = location.pathname + (qs ? '?' + qs : '');
-  const state = { occ: selectedTitle, metric: activeMetric };
+  // Mirror the query exactly; a partial state object is just misleading.
+  const state = Object.fromEntries(params);
   if (push && url !== location.pathname + location.search) {
     history.pushState(state, '', url);
   } else {
@@ -1444,6 +1445,8 @@ async function applyUrlState() {
   applyingUrl = true;
   try {
     setMetric(params.get('metric') || 'avg', false);
+    const u = params.get('unit');
+    userUnitPref = u === 'yr' ? 'A' : u === 'hr' ? 'H' : null;
     const occ = params.get('occ');
     if (!occ) {
       selectedTitle = null;
