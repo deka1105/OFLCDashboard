@@ -951,7 +951,7 @@ async function init() {
       <div class="tt-state">${info.stateName} (${info.stAb})</div>`;
 
     if (selectedTitle) {
-      html += `<div class="tt-title">${selectedLabel}</div>`;
+      html += `<div class="tt-title">${selectedTitle}</div>`;
       if (tdata) {
         const metricLabels = {l1:'Level 1', l2:'Level 2', l3:'Level 3', l4:'Level 4', avg:'Average'};
         ['l1','l2','l3','l4','avg'].forEach(m => {
@@ -1054,7 +1054,7 @@ async function init() {
     //   `Showing ${Object.keys(fipsVal).length} counties for "${selectedTitle}"`;
 
     document.getElementById('status').textContent =
-  `Showing ${Object.keys(fipsVal).length} counties for "${selectedLabel}" • Pinch or use buttons to zoom`;
+  `Showing ${Object.keys(fipsVal).length} counties for "${selectedTitle}" • Pinch or use buttons to zoom`;
 
     // Update side panel
     updatePanel(rows, minVal, maxVal);
