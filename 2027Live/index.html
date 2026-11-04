@@ -687,6 +687,36 @@ let userUnitPref = null;
 const HOURS_PER_YEAR = 2080;
 let currentData = {};
 
+// Last year's wages for the cells OFLC left blank this year. Keyed
+// "SocCode|Area"; the page expands Area to counties itself, so this is 1,168
+// rows and 14 KB rather than 6,601 county rows.
+const FALLBACK_URL = 'https://media.githubusercontent.com/media/deka1105/OFLCDashboard/refs/heads/Mobile-Version/2027/fallback_2025_26.csv.gz';
+const fallbackIndex = new Map();
+
+async function loadFallback() {
+  try {
+    const text = await fetchCsvText(FALLBACK_URL);
+    const lines = text.split('\n');
+    for (let i = 1; i < lines.length; i++) {
+      const f = lines[i].split(',');
+      if (f.length < 8) continue;
+      fallbackIndex.set(f[0] + '|' + f[1], {
+        l1: +f[2] || 0, l2: +f[3] || 0, l3: +f[4] || 0,
+        l4: +f[5] || 0, avg: +f[6] || 0, year: f[7].trim()
+      });
+    }
+  } catch (err) {
+    // Not fatal: without it those counties simply stay blank, as before.
+    console.warn('fallback wages unavailable:', err.message);
+  }
+}
+
+// Tag shown beside a county name whose figure came from an earlier wage year.
+function yearTag(row) {
+  if (!row || !row.year) return '';
+  return `<span class="yr-tag" title="No 2026-27 wage published here; showing the ${row.year} figure">${row.year}</span>`;
+}
+
 let geoIndex = {};       // occupation -> {soccode, filename, url}
 const csvCache = new Map(); // csv url -> {titleIndex, countyIndex}
 let OCCUPATIONS = [];    // list for autocomplete
