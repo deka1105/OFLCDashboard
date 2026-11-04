@@ -16,6 +16,7 @@ as ',' at display time.
 Usage:  python3 build_2027.py
 """
 
+import io
 import os
 
 import pandas as pd
@@ -55,9 +56,27 @@ def build_divided_csv():
     print(f"merged rows: {len(merged):,}")
 
     os.makedirs(DIVIDED_DIR, exist_ok=True)
-    for soc, group in merged.groupby("OES_SOCCODE"):
-        group.to_csv(os.path.join(DIVIDED_DIR, f"{soc}.csv"), index=False)
-    print(f"wrote {merged['OES_SOCCODE'].nunique()} files to {DIVIDED_DIR}")
+
+    # Write each file, then read it back and compare. Occasional writes in this
+    # batch come back missing, so retry until the file on disk matches.
+    groups = dict(tuple(merged.groupby("OES_SOCCODE")))
+    unwritten = []
+    for soc, group in groups.items():
+        buf = io.StringIO()
+        group.to_csv(buf, index=False)
+        want = buf.getvalue()
+        path = os.path.join(DIVIDED_DIR, f"{soc}.csv")
+        for _ in range(4):
+            if os.path.exists(path) and open(path).read() == want:
+                break
+            with open(path, "w") as fh:
+                fh.write(want)
+        else:
+            unwritten.append(soc)
+
+    print(f"wrote {len(groups) - len(unwritten)}/{len(groups)} files to {DIVIDED_DIR}")
+    if unwritten:
+        raise SystemExit(f"FAILED to write: {unwritten}")
 
 
 def build_profession_index():
