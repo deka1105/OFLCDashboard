@@ -937,7 +937,7 @@ async function init() {
       <div class="tt-state">${info.stateName} (${info.stAb})</div>`;
 
     if (selectedTitle) {
-      html += `<div class="tt-title">${selectedTitle}</div>`;
+      html += `<div class="tt-title">${selectedLabel}</div>`;
       if (tdata) {
         const metricLabels = {l1:'Level 1', l2:'Level 2', l3:'Level 3', l4:'Level 4', avg:'Average'};
         ['l1','l2','l3','l4','avg'].forEach(m => {
@@ -1173,7 +1173,8 @@ async function init() {
 async function selectTitle(title) {
 
   selectedTitle = title;
-  input.value = title;
+  selectedLabel = title.replaceAll(';', ',');
+  input.value = selectedLabel;
   acList.classList.remove('open');
 
   const geo = geoIndex[title];
@@ -1205,7 +1206,7 @@ async function selectTitle(title) {
     const items = acList.querySelectorAll('.ac-item');
     if (e.key === 'ArrowDown') { acIndex = Math.min(acIndex+1, items.length-1); items.forEach((el,i)=>el.classList.toggle('active',i===acIndex)); e.preventDefault(); }
     else if (e.key === 'ArrowUp') { acIndex = Math.max(acIndex-1, 0); items.forEach((el,i)=>el.classList.toggle('active',i===acIndex)); e.preventDefault(); }
-    else if (e.key === 'Enter' && acIndex >= 0 && items[acIndex]) { selectTitle(items[acIndex].dataset.title); }
+    else if (e.key === 'Enter' && acIndex >= 0 && items[acIndex]) { selectTitle(items[acIndex].dataset.key); }
     else if (e.key === 'Escape') { acList.classList.remove('open'); }
   });
 
