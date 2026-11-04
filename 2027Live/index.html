@@ -385,6 +385,44 @@
   }
   #source-close:hover { border-color: var(--accent2); color: var(--accent2); }
 
+  /* Levels explainer. Reuses the source modal's look. */
+  #levels-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    font-family: var(--font); font-size: 0.55rem; line-height: 1;
+    padding: 1px 4px; margin-left: 3px; cursor: pointer; border-radius: 2px;
+    vertical-align: middle;
+  }
+  #levels-btn:hover { border-color: var(--accent); color: var(--accent); }
+  #levels-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+    z-index: 860; display: none; align-items: center; justify-content: center;
+  }
+  #levels-box {
+    background: var(--surface); border: 1px solid var(--accent);
+    max-width: 620px; width: 92%; max-height: 86vh; overflow-y: auto;
+    padding: 22px 26px 18px; position: relative;
+    box-shadow: 0 0 30px rgba(240,180,41,0.1);
+  }
+  #levels-box h2 { font-family: var(--serif); color: var(--accent); font-size: 1.1rem; margin-bottom: 6px; }
+  #levels-box .lv-intro { font-size: 0.68rem; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+  #levels-box .lv { border-left: 2px solid var(--accent2); padding: 0 0 0 10px; margin-bottom: 13px; }
+  #levels-box .lv h3 { font-size: 0.72rem; color: var(--accent2); margin-bottom: 3px; letter-spacing: 0.04em; }
+  #levels-box .lv p { font-size: 0.68rem; color: var(--text); line-height: 1.6; margin: 0; }
+  #levels-box .lv .cue { display: block; margin-top: 4px; font-size: 0.62rem; color: var(--muted); }
+  #levels-box .lv-note {
+    border-top: 1px solid var(--border); margin-top: 16px; padding-top: 12px;
+    font-size: 0.64rem; color: var(--muted); line-height: 1.65;
+  }
+  #levels-box .lv-note strong { color: var(--text); font-weight: 600; }
+  #levels-box a { color: var(--accent2); text-decoration: none; }
+  #levels-box a:hover { text-decoration: underline; }
+  #levels-close {
+    margin-top: 14px; background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-family: var(--font); font-size: 0.62rem;
+    padding: 6px 14px; cursor: pointer; letter-spacing: 0.06em;
+  }
+  #levels-close:hover { border-color: var(--accent); color: var(--accent); }
+
   /* HELP POPUP */
   #help-popup {
     position: fixed;
@@ -591,7 +629,7 @@
   </div>
 
   <div style="display:flex;flex-direction:column;gap:4px;">
-    <label style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Metric</label>
+    <label style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Metric <button type="button" id="levels-btn" title="What do Levels 1-4 mean?" aria-label="What do Levels 1 to 4 mean?">?</button></label>
     <div class="metric-group">
       <button class="metric-btn" data-metric="l1">Level 1</button>
       <button class="metric-btn" data-metric="l2">Level 2</button>
